@@ -469,7 +469,7 @@ class FJSP_simulator(object):
                 self.process_event()
                 
         
-        Flow_time, machine_util, util, makespan, tardiness, lateness, t_max,q_time_true,q_time_false,q_job_t, q_job_f = self.performance_measure()
+        Flow_time, machine_util, util, makespan, tardiness, lateness, t_max,q_time_true,q_time_false,q_job_t, q_job_f, q_time = self.performance_measure()
         print(self.k)
         print("FlowTime:" , Flow_time)
         print("machine_util:" , machine_util)
@@ -482,6 +482,7 @@ class FJSP_simulator(object):
         print("Q time False", q_time_false)
         print("Q job True", q_job_t)
         print("Q job False", q_job_f)
+        print("Q total over time", q_time)
         #self.gannt_chart()
         return Flow_time, util, makespan
     #event = (job_type, operation, machine_type, start_time, end_time, event_type)
