@@ -340,6 +340,7 @@ class FJSP_simulator(object):
        # print(self.num_of_op)
         #print(self.total_job)
         ##print(self.total_operation)
+        r = 0
         done = False
         while True:
             machine = self.check_availability()
@@ -352,16 +353,14 @@ class FJSP_simulator(object):
                     r =  0
                     break
             else:
-                p_time,jop = self.dispatching_rule_decision(machine, action)
+                q_time,jop = self.dispatching_rule_decision(machine, action)
                 s_prime = self.set_state()
                 reservation_time = self.r_list[machine].reservation_time
                 last_work_finish_time = self.r_list[machine].last_work_finish_time
                 max_reservation = 0
                 min_reservation = 100000000
-                p_time_lst = []
                 total_idle = 0
                 for machine in self.r_list:
-                    p_time_lst.append(self.process_time_table[machine].loc[jop])
                     if self.r_list[machine].reservation_time > max_reservation:
                         max_reservation = self.r_list[machine].reservation_time
                     if self.r_list[machine].reservation_time < min_reservation:
@@ -369,7 +368,13 @@ class FJSP_simulator(object):
                     if self.r_list[machine].reservation_time < last_work_finish_time:
                         total_idle += (last_work_finish_time - self.r_list[machine].reservation_time)
                         self.r_list[machine].reservation_time = last_work_finish_time
-                r = -(reservation_time-last_work_finish_time + total_idle)
+                if q_time == 0 :
+                    r += 10
+                elif q_time >0 :
+                    r -= 10
+                else:
+                    r+=0
+                r -= (reservation_time-last_work_finish_time + total_idle)
                 break
         return s_prime, r , done
     
@@ -512,6 +517,8 @@ class FJSP_simulator(object):
             p_time,jop = self.dispatching_rule_LIFO(machine)
         elif coin == 9:
             p_time,jop = self.dispatching_rule_CR(machine)
+        elif coin == 10:
+            p_time,jop = self.dispatching_rule_NONE(machine)
         
         return p_time,jop
     def process_event(self):
@@ -522,9 +529,13 @@ class FJSP_simulator(object):
         if event.event_type == "job_arrival":
             event.job.arrival()
         else:
-            if event.event_type == "setup_change":
-                event_type = "setup"
+            if event.event_type != "track_in_finish":
+                if event.event_type == "setup_change":
+                    event_type = "setup"
+                elif event.event_type == "NOTHING":
+                    event_type = "NOTHING"
             else:
+                #print(event.job)
                 event_type = "j"+str(event.job.job_type)
                 last = event.job.complete_setting(event.start_time, event.end_time ,event.event_type) # 작업이 대기로 변함, 시작시간, 종료시간, event_type
                 event.machine.complete_setting(event.start_time, event.end_time ,event.event_type) # 기계도 사용가능하도록 변함
@@ -593,7 +604,7 @@ class FJSP_simulator(object):
         q_time_diff = self.assign_setting(p_table[0][0], self.r_list[machine],self.time+setup_time+p_table[0][1])
         e = Event(p_table[0][0], jop ,self.r_list[machine], self.time, self.time+setup_time+p_table[0][1],"track_in_finish",rule_name,step_num,setup_time, q_time_diff)
         self.event_list.append(e)
-        return p_table[0][1], jop
+        return q_time_diff, jop
     
     def dispatching_rule_SSU(self, machine):
         rule_name= "SSU"
@@ -617,7 +628,7 @@ class FJSP_simulator(object):
         q_time_diff = self.assign_setting(p_table[0][0], self.r_list[machine],self.time+setup_time+p_table[0][1])
         e = Event(p_table[0][0], jop ,self.r_list[machine], self.time, self.time+setup_time+p_table[0][1],"track_in_finish",rule_name,step_num,setup_time,q_time_diff)
         self.event_list.append(e)
-        return p_table[0][1], jop
+        return q_time_diff, jop
     
     def dispatching_rule_SPTSSU(self, machine):
         rule_name= "SPTSSU"
@@ -641,7 +652,7 @@ class FJSP_simulator(object):
         q_time_diff = self.assign_setting(p_table[0][0], self.r_list[machine],self.time+setup_time+p_table[0][1])
         e = Event(p_table[0][0], jop ,self.r_list[machine], self.time, self.time+setup_time+p_table[0][1],"track_in_finish",rule_name,step_num,setup_time, q_time_diff)
         self.event_list.append(e)
-        return p_table[0][1], jop
+        return q_time_diff, jop
     
     def dispatching_rule_MOR(self, machine):
         rule_name= "MOR"
@@ -665,7 +676,7 @@ class FJSP_simulator(object):
         q_time_diff = self.assign_setting(p_table[0][0], self.r_list[machine],self.time+setup_time+p_table[0][1])
         e = Event(p_table[0][0], jop ,self.r_list[machine], self.time, self.time+setup_time+p_table[0][1],"track_in_finish",rule_name,step_num,setup_time, q_time_diff)
         self.event_list.append(e)
-        return p_table[0][1], jop
+        return q_time_diff, jop
     
     def dispatching_rule_LOR(self, machine):
         rule_name= "LOR"
@@ -689,7 +700,7 @@ class FJSP_simulator(object):
         q_time_diff = self.assign_setting(p_table[0][0], self.r_list[machine],self.time+setup_time+p_table[0][1])
         e = Event(p_table[0][0], jop ,self.r_list[machine], self.time, self.time+setup_time+p_table[0][1],"track_in_finish",rule_name,step_num,setup_time, q_time_diff)
         self.event_list.append(e)
-        return p_table[0][1], jop
+        return q_time_diff, jop
     
     def dispatching_rule_EDD(self, machine):
         rule_name= "EDD"
@@ -713,7 +724,7 @@ class FJSP_simulator(object):
         q_time_diff = self.assign_setting(p_table[0][0], self.r_list[machine],self.time+setup_time+p_table[0][1])
         e = Event(p_table[0][0], jop ,self.r_list[machine], self.time, self.time+setup_time+p_table[0][1],"track_in_finish",rule_name,step_num,setup_time, q_time_diff)
         self.event_list.append(e)
-        return p_table[0][1], jop
+        return q_time_diff, jop
     
     def dispatching_rule_MST(self, machine):
         rule_name= "MST"
@@ -737,7 +748,7 @@ class FJSP_simulator(object):
         q_time_diff = self.assign_setting(p_table[0][0], self.r_list[machine],self.time+setup_time+p_table[0][1])
         e = Event(p_table[0][0], jop ,self.r_list[machine], self.time, self.time+setup_time+p_table[0][1],"track_in_finish",rule_name,step_num,setup_time, q_time_diff)
         self.event_list.append(e)
-        return p_table[0][1], jop
+        return q_time_diff, jop
     
     def dispatching_rule_CR(self, machine):
         rule_name= "CR"
@@ -761,7 +772,7 @@ class FJSP_simulator(object):
         q_time_diff = self.assign_setting(p_table[0][0], self.r_list[machine],self.time+setup_time+p_table[0][1])
         e = Event(p_table[0][0], jop ,self.r_list[machine], self.time, self.time+setup_time+p_table[0][1],"track_in_finish",rule_name,step_num,setup_time, q_time_diff)
         self.event_list.append(e)
-        return p_table[0][1], jop
+        return q_time_diff, jop
     
     def dispatching_rule_FIFO(self, machine):
         rule_name= "FIFO"
@@ -785,7 +796,7 @@ class FJSP_simulator(object):
         q_time_diff = self.assign_setting(p_table[0][0], self.r_list[machine],self.time+setup_time+p_table[0][1])
         e = Event(p_table[0][0], jop ,self.r_list[machine], self.time, self.time+setup_time+p_table[0][1],"track_in_finish",rule_name,step_num,setup_time, q_time_diff)
         self.event_list.append(e)
-        return p_table[0][1], jop
+        return q_time_diff, jop
     
     def dispatching_rule_LIFO(self, machine):
         rule_name= "LIFO"
@@ -809,7 +820,20 @@ class FJSP_simulator(object):
         q_time_diff = self.assign_setting(p_table[0][0], self.r_list[machine],self.time+setup_time+p_table[0][1])
         e = Event(p_table[0][0], jop ,self.r_list[machine], self.time, self.time+setup_time+p_table[0][1],"track_in_finish",rule_name,step_num,setup_time, q_time_diff)
         self.event_list.append(e)
-        return p_table[0][1], jop
+        return q_time_diff, jop
+    
+    def dispatching_rule_NONE(self, machine):
+        rule_name= "NONE"
+        step_num = self.step_number
+        self.step_number+=1
+        machine = self.r_list[machine].id #machine 이름
+        self.event_list.sort(key = lambda x:x.end_time, reverse = False)
+        event = self.event_list[0]
+        j = Job("j0", 0 ,0, 0
+                    ,0,0,0, "NOTYET")
+        e = Event(j, "NOTHING" ,self.r_list[machine], self.time, event.end_time ,"NOTHING" ,rule_name,step_num,"NOTHING", "NOTHING")
+        self.event_list.append(e)
+        return -1, "NONE"
     
 
 
@@ -818,7 +842,7 @@ class FJSP_simulator(object):
 makespan_table = []
 util = []
 ft_table = []
-
+"""
 for i in range(2,3):
     main = FJSP_simulator('C:/Users/parkh/git_tlsgudcks/simulator/data/DFJSP_test.csv','C:/Users/parkh/git_tlsgudcks/simulator/data/DFJSP_setup_test.csv',
                           "C:/Users/parkh/git_tlsgudcks/simulator/data/DFJSP_Qdata_test.csv","C:/Users/parkh/git_tlsgudcks/simulator/data/DFJSP_rdData_test2.csv",i)
@@ -829,3 +853,5 @@ for i in range(2,3):
 print(makespan_table)
 print(ft_table)
 print(util)
+print("zz")
+"""
