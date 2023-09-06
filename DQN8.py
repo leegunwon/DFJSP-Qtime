@@ -10,7 +10,7 @@ import collections
 import random
 from simulator_DFJSP import *
 
-learning_rate = 0.0001  
+learning_rate = 0.0004
 gamma = 0.99
 buffer_limit = 50000
 batch_size = 32
@@ -77,8 +77,8 @@ def train(q, q_target, memory, optimizer):
         optimizer.step()
             
 def main():
-    env = FJSP_simulator('C:/Users/parkh/git_tlsgudcks/simulator/data/DFJSP_test.csv','C:/Users/parkh/git_tlsgudcks/simulator/data/DFJSP_setup_test.csv',
-                          "C:/Users/parkh/git_tlsgudcks/simulator/data/DFJSP_Qdata_test.csv","C:/Users/parkh/git_tlsgudcks/simulator/data/DFJSP_rdData_test2.csv",i)
+    env = FJSP_simulator('C:/Users/user/main_pro/duedate_DQN/data/FJSP_Sim_10_zero.csv','C:/Users/user/main_pro/duedate_DQN/data/FJSP_Set_10.csv',
+                          "C:/Users/user/main_pro/duedate_DQN/data/FJSP_Q_time_10_0.4.csv","C:/Users/user/main_pro/duedate_DQN/data/FJSP_rd_time_10_10,60.csv",i)
     q = Qnet()
     q_target = Qnet()
     q_target.load_state_dict(q.state_dict())

@@ -292,7 +292,7 @@ class FJSP_simulator(object):
         
         [(self.modify_width(bar, 0.7))
         for bar in fig.data if ('setup' in bar.legendgroup)]
-        #fig.show()
+        fig.show()
         
         #fig,write_html(f"{PathInfo.xlsx}{os.sep}temp_target.html", default_width=2300, default_height=900)
         plotlydf3 = self.plotlydf.sort_values(by=['Type'], ascending=True)
@@ -355,8 +355,8 @@ class FJSP_simulator(object):
             else:
                 q_time,jop = self.dispatching_rule_decision(machine, action)
                 s_prime = self.set_state()
-                reservation_time = self.r_list[machine].reservation_time
-                last_work_finish_time = self.r_list[machine].last_work_finish_time
+                reservation_time = self.r_list[machine].reservation_time #해당기계의 예약시간
+                last_work_finish_time = self.r_list[machine].last_work_finish_time #해당 기계의 최근 종료 시간
                 max_reservation = 0
                 min_reservation = 100000000
                 total_idle = 0
@@ -369,9 +369,9 @@ class FJSP_simulator(object):
                         total_idle += (last_work_finish_time - self.r_list[machine].reservation_time)
                         self.r_list[machine].reservation_time = last_work_finish_time
                 if q_time == 0 :
-                    r += 10
+                    r += 7
                 elif q_time >0 :
-                    r -= 10
+                    r -= 7
                 else:
                     r+=0
                 r -= (reservation_time-last_work_finish_time + total_idle)
@@ -519,10 +519,11 @@ class FJSP_simulator(object):
             p_time,jop = self.dispatching_rule_CR(machine)
         elif coin == 10:
             p_time,jop = self.dispatching_rule_NONE(machine)
+            #print(p_time,jop)
         
         return p_time,jop
     def process_event(self):
-        #print(self.event_list)
+       # print("process_event : ",len(self.event_list))
         self.event_list.sort(key = lambda x:x.end_time, reverse = False)
         event = self.event_list.pop(0)
         self.time = event.end_time
@@ -534,6 +535,8 @@ class FJSP_simulator(object):
                     event_type = "setup"
                 elif event.event_type == "NOTHING":
                     event_type = "NOTHING"
+                    event.machine.complete_setting(event.start_time, event.end_time ,event.event_type)
+                    #print("event_type = nothing")
             else:
                 #print(event.job)
                 event_type = "j"+str(event.job.job_type)
@@ -823,22 +826,39 @@ class FJSP_simulator(object):
         return q_time_diff, jop
     
     def dispatching_rule_NONE(self, machine):
-        rule_name= "NONE"
-        step_num = self.step_number
-        self.step_number+=1
-        machine = self.r_list[machine].id #machine 이름
-        self.event_list.sort(key = lambda x:x.end_time, reverse = False)
-        event = self.event_list[0]
-        j = Job("j0", 0 ,0, 0
-                    ,0,0,0, "NOTYET")
-        e = Event(j, "NOTHING" ,self.r_list[machine], self.time, event.end_time ,"NOTHING" ,rule_name,step_num,"NOTHING", "NOTHING")
-        self.event_list.append(e)
-        return -1, "NONE"
+        if len(self.event_list) == 0:
+            q_time_diff, jop = self.dispatching_rule_SPT(machine)
+        else:
+            stop = 0
+            self.event_list.sort(key = lambda x:x.end_time, reverse = False)
+            for i in range(len(self.event_list)):
+                event = self.event_list[i]
+                if event.end_time == self.time :
+                    stop = 0
+                else:
+                    stop = i
+                    break
+            if stop == 0 :
+                q_time_diff, jop = self.dispatching_rule_SPT(machine)
+            else:
+                rule_name= "NOTHING"
+                step_num = self.step_number
+                self.step_number+=1
+                machine = self.r_list[machine].id #machine 이
+                event = self.event_list[stop]
+                j = Job("j0", 0 ,0, 0
+                            ,0,0,0, "NOTYET")
+                e = Event(j, "NOTHING" ,self.r_list[machine], self.time, event.end_time ,"NOTHING" ,rule_name,step_num,"NOTHING", "NOTHING")
+                self.event_list.append(e)
+                self.r_list[machine].assign_setting(j, event.end_time)
+                q_time_diff = -1
+                jop = "NONE"
+        return  q_time_diff, jop
     
 
 
 
-
+#LPST, ORP
 makespan_table = []
 util = []
 ft_table = []
