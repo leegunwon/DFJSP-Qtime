@@ -10,14 +10,25 @@ import collections
 import random
 from simulator_DFJSP import *
 
-learning_rate = 0.0001  
-gamma = 0.99
-buffer_limit = 50000
-batch_size = 32
+
+
+params = {
+    "p_data" : "/Users/shin/DFJSP-Qtime/DFJSP_test.csv",
+    "s_data" : "/Users/shin/DFJSP-Qtime/DFJSP_setup_test.csv",
+    "q_data" : "/Users/shin/DFJSP-Qtime/DFJSP_Qdata_test.csv",
+    "rd_data" : "/Users/shin/DFJSP-Qtime/DFJSP_rdData_test2.csv"
+}
+
+r_param = {
+    "learning_rate" : 0.0001,
+    "gamma" : 0.99,
+    "buffer_limit" : 50000,
+    "batch_size" : 32
+}
 
 class ReplayBuffer():        #buffer class
-    def __init__(self):
-        self.buffer = collections.deque(maxlen=buffer_limit);
+    def __init__(self,buffer_limit):
+        self.buffer = collections.deque(maxlen=buffer_limit)
     def put(self, transition):
         self.buffer.append(transition)
     def sample(self, n):
@@ -64,29 +75,28 @@ class Qnet(nn.Module):        #Qnet
         
 def train(q, q_target, memory, optimizer):
     for i in range(10):
-        s,a,r,s_prime,done_mask = memory.sample(batch_size)
+        s,a,r,s_prime,done_mask = memory.sample(r_param["batch_size"])
         #q.number_of_time_list[a] += 1    
         q_out = q(s)
         q_a = q_out.gather(1,a)
         max_q_prime = q_target(s_prime).max (1)[0].unsqueeze(1)
         #print(max_q_prime.shape)
-        target = r + gamma * max_q_prime * done_mask
+        target = r + r_param["gamma"] * max_q_prime * done_mask
         loss = F.smooth_l1_loss(q_a, target)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
             
-def main():
-    env = FJSP_simulator('C:/Users/parkh/git_tlsgudcks/simulator/data/DFJSP_test.csv','C:/Users/parkh/git_tlsgudcks/simulator/data/DFJSP_setup_test.csv',
-                          "C:/Users/parkh/git_tlsgudcks/simulator/data/DFJSP_Qdata_test.csv","C:/Users/parkh/git_tlsgudcks/simulator/data/DFJSP_rdData_test2.csv",i)
+def main(params, r_param):
+    env = FJSP_simulator(params["p_data"], params["s_data"],params["q_data"], params["rd_data"],1)
     q = Qnet()
     q_target = Qnet()
     q_target.load_state_dict(q.state_dict())
-    memory = ReplayBuffer()
+    memory = ReplayBuffer(r_param["buffer_limit"])
     print_interval = 1
     q_load = 10
     score = 0.0
-    optimizer = optim.Adam(q.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(q.parameters(), lr=r_param["learning_rate"])
     
     for n_epi in range(1000):
         #여기는 sample_action 구간
@@ -170,13 +180,31 @@ def main():
     env.gannt_chart()
     return Flow_time, machine_util, util, makespan, score
 for i in range(1):
-    Flow_time, machine_util, util, makespan, score =main()
+    Flow_time, machine_util, util, makespan, score =main(params, r_param)
     print("FlowTime:" , Flow_time)
     print("machine_util:" , machine_util)
     print("util:" , util)
     print("makespan:" , makespan)
     print("Score" , score)
-    
+
+
+
+#형찬 데이터 파일 경로
+"""
+    "p_data" : "/Users/shin/DFJSP-Qtime/DFJSP_test.csv",
+    "s_data" : "/Users/shin/DFJSP-Qtime/DFJSP_setup_test.csv",
+    "q_data" : "/Users/shin/DFJSP-Qtime/DFJSP_Qdata_test.csv",
+    "rd_data" : "/Users/shin/DFJSP-Qtime/DFJSP_rdData_test2.csv"
+
+#기본
+
+    "p_data" : "프로세스 타임 데이터 입력",
+    "s_data" : "셋업 데이터 입력 칸",
+    "q_data" : "q_data",
+    "rd_data" : "rd_data"
+
+"""
+
 """    
 params = torch.load("nomorspt.pt")
 q = Qnet()

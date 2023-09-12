@@ -29,7 +29,6 @@ class FJSP_simulator(object):
     def __init__(self, p_time_data, s_time_data,q_time_data, r_time_data ,k):
         # 고정 부분
         self.k = k #디스패칭룰 사용할 때 쓸 것
-        
         self.process_time_table = pd.read_csv(p_time_data,index_col=(0))
         self.setup_time_table = pd.read_csv(s_time_data, index_col=(0))
         self.rtime_and_dtime_table = pd.read_csv(r_time_data, index_col=(0))
