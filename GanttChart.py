@@ -6,11 +6,15 @@ from datetime import datetime
 import copy
 import random
 from matplotlib import pyplot as plt
+
+from Parameter import *
 class GanttChart:
     def __init__(self, plotlydf, plotlydf_arrival_and_due):
         print("gantt_on")
         self.plotlydf = plotlydf
         self.plotlydf_arrival_and_due = plotlydf_arrival_and_due
+        param = Parameters()
+        self.gantt_on = param.gantt_on
 
     def update_df(self):
 
@@ -29,6 +33,27 @@ class GanttChart:
             else:
                 id_op.append("NONE")
         self.plotlydf["ID_OP"] = id_op
+
+
+    def play_gantt(self):
+        self.update_df()
+        for i in self.gantt_on:
+            if self.gantt_on[i]:
+                if i == "main_gantt":
+                    self.main_gantt()
+                elif i == "machine_on_job_number":
+                    self.mahicne_on_job_number()
+                elif i == "machine_gantt":
+                    self.machine_gantt()
+                elif i == "DSP_gantt":
+                    self.DSP_gantt()
+                elif i == "step_DSP_gantt":
+                    self.step_DSP_gantt()
+                elif i == "heatMap_gantt":
+                    self.heatMap_gantt()
+                elif i == "job_gantt_for_Q_time":
+                    self.job_gantt_for_Q_time()
+
 
     def mahicne_on_job_number(self):
         fig = px.bar(self.plotlydf, x="Resource", y="Type", color="Type", facet_row="Type")
