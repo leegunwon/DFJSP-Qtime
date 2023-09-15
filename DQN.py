@@ -32,7 +32,7 @@ class DQN:
             optimizer.step()
 
     def main(self):
-        env = FJSP_simulator(self.params["p_data"], self.params["s_data"], self.params["q_data"], self.params["rd_data"], 1)
+        env = FJSP_simulator(self.params["p_data"], self.params["s_data"], self.params["q_data"], self.params["rd_data"])
         q = Qnet(self.r_param["input_layer"], self.r_param["output_layer"])
         q_target = Qnet(self.r_param["input_layer"], self.r_param["output_layer"])
         q_target.load_state_dict(q.state_dict())

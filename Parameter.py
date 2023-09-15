@@ -33,7 +33,31 @@ class Parameters:
             "FIFO" : 7,
             "LIFO" : 8,
             "CR" : 9
+        }
 
+        self.DSP_rule_check ={
+            "SPT": True,
+            "SSU": True,
+            "SPTSSU": True,
+            "MOR": True,
+            "LOR": True,
+            "EDD": True,
+            "MST": True,
+            "FIFO": True,
+            "LIFO": True,
+            "CR": True
+
+        }
+
+
+        self.gantt_on ={
+            "mahicne_on_job_number" : False,
+            "machine_gantt" : False,
+            "DSP_gantt" : False,
+            "step_DSP_gantt" : False,
+            "heatMap_gantt" : False,
+            "main_gantt" : False,
+            "job_gantt_for_Q_time" : False
         }
 
     def set_parameters(self, learning_rate, batch_size, num_epochs, hidden_size):

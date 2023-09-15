@@ -32,23 +32,17 @@ class FJSP_simulator(object):
     #realase time
     #duedate time(realase time에 포함)
     # 5가지 데이터를 모두 불러옴    
-    def __init__(self, p_time_data, s_time_data,q_time_data, r_time_data):
+    def __init__(self, p_time_data, s_time_data):
         # 고정 부분
         self.process_time_table = pd.read_csv(p_time_data,index_col=(0))
         self.setup_time_table = pd.read_csv(s_time_data, index_col=(0))
-        self.rtime_and_dtime_table = pd.read_csv(r_time_data, index_col=(0))
-        self.queue_time_table = pd.read_csv(q_time_data, index_col=(0))
         self.machine_number = len(self.process_time_table.columns) #machine 개수
-        self.dispatcher = Dispatcher()
         """총 job 개수"""
         operation = self.process_time_table.index
         op_table=[]
         for i in range(len(operation)):
-            op_table.append(operation[i][1:3])
-        self.job_number = len(set(op_table)) #총 Job_type 개수
-        
-        """각 job type 별로 총 job 개수"""
-        self.total_job = [0 for x in range(self.job_number)] # 생산 요구량 의미 [3,3,2,4,2,3] 
+            op_table.append(operation[i][:3])
+        self.job_number = set(op_table) #총 Job_type 개수
         """각 job별로 총 operation개수"""
         self.max_operation = [0 for x in range(self.job_number)]
         for i in range(1, self.job_number+1):
@@ -58,8 +52,6 @@ class FJSP_simulator(object):
         
         # 리셋 부분
         self.done = False #종료조건 판단
-        self.remain_job = copy.deepcopy(self.total_job)
-        #self.num_of_op = sum(self.total_operation)
         self.time = 0 #시간
         self.plotlydf = pd.DataFrame([],columns=['Type','JOB_ID','Task','Start','Finish','Resource','Rule','Step','Q_diff','Q_check'])
         self.plotlydf_arrival_and_due = pd.DataFrame([],columns=['Type','JOB_ID','Task','Start','Finish','Resource','Rule','Step','Q_diff','Q_check'])
@@ -71,15 +63,15 @@ class FJSP_simulator(object):
         """job 인스턴스 생성"""
         self.j_list = defaultdict(Job)
         self.event_list = []
-        for i in range(len(self.rtime_and_dtime_table)):
-            due_date = self.rtime_and_dtime_table.iloc[i]["d_time"]
-            realase_date = self.rtime_and_dtime_table.iloc[i]["r_time"]
+        for i in range(len(job_number):
+            due_date = 0
+            realase_date = 0
             if realase_date == 0:
                 status = "WAIT"
             else:
                 status = "NOTYET"
             
-            job_type = self.rtime_and_dtime_table.iloc[i].name
+            job_type = "j" + str(i+1)
             
             job_type_int = int(job_type[1:])
             job_id = job_type + "-" + str(realase_date) + "-" + str(i)    
@@ -261,7 +253,7 @@ class FJSP_simulator(object):
                 if q_time == "None" :
                     r += 0
                 else:
-                    r-= q_time
+                    r+= q_time
                 r -= (reservation_time-last_work_finish_time + total_idle)
                 break
         return s_prime, r , done
