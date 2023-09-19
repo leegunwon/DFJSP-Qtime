@@ -41,6 +41,8 @@ class DQN:
         q_load = 10
         score = 0.0
         optimizer = optim.Adam(q.parameters(), lr=self.r_param["learning_rate"])
+        makespan_list = []
+        q_over_time_list = []
 
         for n_epi in range(1000):
             # 여기는 sample_action 구간
@@ -56,6 +58,7 @@ class DQN:
                 if done == False:
                     memory.put((s, a, r, s_prime, done_mask))
                     s = s_prime
+
                     score += r
                 if done:
                     break
@@ -63,7 +66,7 @@ class DQN:
             # 학습구간
             if memory.size() > 1000:
                 self.train(q, q_target, memory, optimizer)
-            self.script_performance(env,n_epi,epsilon,memory, score)
+            makespan_list, q_over_time_list = self.script_performance(env,n_epi,epsilon,memory, score, False, makespan_list, q_over_time_list)
             # 결과 및 파라미터 저장
             if n_epi % print_interval == 0 and n_epi != 0:
                 params = q.state_dict()
@@ -82,7 +85,7 @@ class DQN:
                 score += r
                 if done:
                     break
-            self.script_performance(env,n_epi,epsilon,memory, score)
+            makespan_list, q_over_time_list = self.script_performance(env,n_epi,epsilon,memory, score, True,makespan_list, q_over_time_list)
 
             if n_epi % q_load == 0 and n_epi != 0:
                 q_target.load_state_dict(q.state_dict())
@@ -106,8 +109,9 @@ class DQN:
 
 
 
-    def script_performance(self, env, n_epi, epsilon,memory, score):
+    def script_performance(self, env, n_epi, epsilon,memory, score, type, makespan_list, q_over_time_list):
         Flow_time, machine_util, util, makespan, Tardiness_time, Lateness_time, T_max, q_time_true, q_time_false, q_job_t, q_job_f, q_over_time = env.performance_measure()
+
         print("--------------------------------------------------")
         print("flow time: {}, util : {:.3f}, makespan : {}".format(Flow_time, util, makespan))
         print("Tardiness: {}, Lateness : {}, T_max : {}".format(Tardiness_time, Lateness_time, T_max))
@@ -116,3 +120,10 @@ class DQN:
         print(
             "n_episode: {}, score : {:.1f}, n_buffer : {}, eps : {:.1f}%".format(n_epi, score,
                                                                                  memory.size(), epsilon * 100))
+        if type:
+            makespan_list.append(makespan)
+            q_over_time_list.append(q_over_time)
+
+        return makespan_list, q_over_time_list
+
+

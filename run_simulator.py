@@ -12,7 +12,7 @@ class Run_Simulator:
 
     def main(self, mode, dsp_rule):
         if mode == "DQN":
-            self.DQN.main()
+             self.DQN.main()
         elif mode == "DSP_run":
             self.simulator.run(dsp_rule)
         elif mode == "DSP_check_run":
@@ -24,8 +24,15 @@ class Run_Simulator:
 
 if True:
     simulator = Run_Simulator()
-    simulator.main("DSP_check_run","SQT") # dsp_rule = 개별 확인할 때만 사용하면 됨
+    simulator.main("DQN","SQT") # dsp_rule = 개별 확인할 때만 사용하면 됨
 
+
+    """
+    m_ = [40, 32, 41, 28]
+    q_ = [4,  1, 5,  6]
+    i_ =[1  ,5 ,36,  102]
+    
+    """
 # gantt chart 쑬 것인지
 # 학습 방법, kpi목표
 # 모든 디스패칭 룰 돌리기
