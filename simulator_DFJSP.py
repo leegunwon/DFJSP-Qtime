@@ -13,6 +13,7 @@ import copy
 import random
 from matplotlib import pyplot as plt
 
+import RewardManager
 import dispatcher
 from Resource import *
 from Job import *
@@ -21,11 +22,11 @@ from dispatcher import *
 from Parameter import *
 from collections import defaultdict
 from StateManager import *
+from RewardManager import *
 from plotly.offline import plot
 from GanttChart import *
 
 class FJSP_simulator(object):
-        
     #processing time
     #setup time
     #queue time
@@ -40,6 +41,7 @@ class FJSP_simulator(object):
         self.queue_time_table = pd.read_csv(q_time_data, index_col=(0))
         self.machine_number = len(self.process_time_table.columns) #machine 개수
         self.dispatcher = Dispatcher()
+        self.rewardManager = RewardManager()
         """총 job 개수"""
         operation = self.process_time_table.index
         op_table=[]
@@ -243,19 +245,7 @@ class FJSP_simulator(object):
                 q_time = self.get_event(candidate_list[0], machine, rule_name)
 
                 s_prime = self.state_manager.set_state(self.j_list, self.r_list, self.time)
-                reservation_time = self.r_list[machine].reservation_time
-                last_work_finish_time = self.r_list[machine].last_work_finish_time
-                total_idle = 0
-                total_q_time_over  = 0
-                for machine in self.r_list:
-                    if self.r_list[machine].reservation_time < last_work_finish_time:
-                        total_idle += (last_work_finish_time - self.r_list[machine].reservation_time)
-                        self.r_list[machine].reservation_time = last_work_finish_time
-                for job in self.j_list:  # job 이름과 operation이름 찾기
-                    if self.j_list[job].status == "WAIT":
-                        total_q_time_over += self.j_list[job].cal_q_time(self.time)
-
-                r -= (0.8 * (reservation_time-last_work_finish_time + total_idle) + 0.2 * total_q_time_over)
+                r , self.r_list = self.rewardManager.get_reward(machine , self.j_list, self.r_list, self.time)
                 break
         return s_prime, r , done
     def run(self, rule):
