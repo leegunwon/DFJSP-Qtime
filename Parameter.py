@@ -31,7 +31,8 @@ class Parameters:
             "batch_size": 32,
             "buffer_limit": 50000,
             "input_layer" : 12,
-            "output_layer" : 10
+            "output_layer" : 10,
+            "episode" : 1000
         }
 
         self.select_DSP_rule ={

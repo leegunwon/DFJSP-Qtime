@@ -20,5 +20,5 @@ class RewardManager:
             if j_list[job].status == "WAIT":
                 total_q_time_over += j_list[job].cal_q_time(curr_time)
 
-        r -= (0.5 * (reservation_time - last_work_finish_time + total_idle) + 0.5 * total_q_time_over)
+        r -= (0.2 * (reservation_time - last_work_finish_time + total_idle) + 0.8 * total_q_time_over)
         return  r, r_list
