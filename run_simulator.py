@@ -24,7 +24,7 @@ class Run_Simulator:
 
 if True:
     simulator = Run_Simulator()
-    simulator.main("DQN","SSU") # dsp_rule = 개별 확인할 때만 사용하면 됨
+    simulator.main("DSP_check_run","SQT") # dsp_rule = 개별 확인할 때만 사용하면 됨
 
 # gantt chart 쑬 것인지
 # 학습 방법, kpi목표

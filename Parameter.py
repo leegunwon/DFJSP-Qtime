@@ -1,15 +1,27 @@
 
 
 class Parameters:
+    """
+    "p_data" : "/Users/shin/DFJSP-Qtime/Data/FJSP_Sim_10_zero.csv",
+    "s_data" : "/Users/shin/DFJSP-Qtime/test_data/FJSP_Set_10.csv",
+    "q_data" : "/Users/shin/DFJSP-Qtime/test_data/Q-time/FJSP_Q_time_10_0.4.csv",
+    "rd_data" : "/Users/shin/DFJSP-Qtime/test_data/rd_time/10/FJSP_rd_time_10_10,60.csv"
+
+    "p_data" : "/Users/shin/DFJSP-Qtime/Data/DFJSP_test.csv",
+    "s_data" : "/Users/shin/DFJSP-Qtime/Data/DFJSP_setup_test.csv",
+    "q_data" : "/Users/shin/DFJSP-Qtime/Data/DFJSP_Qdata_test.csv",
+    "rd_data" : "/Users/shin/DFJSP-Qtime/Data/DFJSP_rdData_test2.csv"
+
+    """
     def __init__(self):
         # 여기에 파라미터를 초기화합니다.'
         print("parameter load")
         self.data = {
             # 데이터 링크
-            "p_data" : "/Users/shin/DFJSP-Qtime/Data/DFJSP_test.csv",
-            "s_data" : "/Users/shin/DFJSP-Qtime/Data/DFJSP_setup_test.csv",
-            "q_data" : "/Users/shin/DFJSP-Qtime/Data/DFJSP_Qdata_test.csv",
-            "rd_data" : "/Users/shin/DFJSP-Qtime/Data/DFJSP_rdData_test2.csv"
+            "p_data" : "/Users/shin/DFJSP-Qtime/test_data/FJSP_Sim_10_zero.csv",
+            "s_data" : "/Users/shin/DFJSP-Qtime/test_data/FJSP_Set_10.csv",
+            "q_data" : "/Users/shin/DFJSP-Qtime/test_data/Q-time/FJSP_Q_time_10_0.4.csv",
+            "rd_data" : "/Users/shin/DFJSP-Qtime/test_data/rd_time/10/FJSP_rd_time_10_10,60.csv"
         }
 
         self.r_param = {
@@ -32,7 +44,8 @@ class Parameters:
             "MST" : 6,
             "FIFO" : 7,
             "LIFO" : 8,
-            "CR" : 9
+            "CR" : 9,
+            "SQT" : 11
         }
 
         self.DSP_rule_check ={
@@ -45,7 +58,8 @@ class Parameters:
             "MST": True,
             "FIFO": True,
             "LIFO": True,
-            "CR": True
+            "CR": False,
+            "SQT" : True
 
         }
 

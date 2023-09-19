@@ -44,6 +44,9 @@ class Dispatcher:
         elif coin == 10:
             candidate_list = self.dispatching_rule_NONE(candidate_list)
             rule_name = "NONE"
+        elif coin == 11:
+            candidate_list = self.dispatching_rule_SQT(candidate_list,curr_time)
+            rule_name = "SQT"
 
         return candidate_list, rule_name
 
@@ -95,6 +98,10 @@ class Dispatcher:
 
     def dispatching_rule_LIFO(self, candidate_list):
         candidate_list.sort(key=lambda x: x[0].job_arrival_time, reverse=True)
+        return candidate_list
+
+    def dispatching_rule_SQT(self, candidate_list,curr_time):
+        candidate_list.sort(key=lambda x: [-x[0].cal_q_time(curr_time) ,x[0].job_arrival_time], reverse = False)
         return candidate_list
 
     def dispatching_rule_NONE(self, candidate_list):

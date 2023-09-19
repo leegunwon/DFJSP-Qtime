@@ -245,24 +245,17 @@ class FJSP_simulator(object):
                 s_prime = self.state_manager.set_state(self.j_list, self.r_list, self.time)
                 reservation_time = self.r_list[machine].reservation_time
                 last_work_finish_time = self.r_list[machine].last_work_finish_time
-                max_reservation = 0
-                min_reservation = 100000000
                 total_idle = 0
-
+                total_q_time_over  = 0
                 for machine in self.r_list:
-                    if self.r_list[machine].reservation_time > max_reservation:
-                        max_reservation = self.r_list[machine].reservation_time
-                    if self.r_list[machine].reservation_time < min_reservation:
-                        min_reservation = self.r_list[machine].reservation_time
                     if self.r_list[machine].reservation_time < last_work_finish_time:
                         total_idle += (last_work_finish_time - self.r_list[machine].reservation_time)
                         self.r_list[machine].reservation_time = last_work_finish_time
+                for job in self.j_list:  # job 이름과 operation이름 찾기
+                    if self.j_list[job].status == "WAIT":
+                        total_q_time_over += self.j_list[job].cal_q_time(self.time)
 
-                if q_time == "None" :
-                    r += 0
-                else:
-                    r-= q_time
-                r -= (reservation_time-last_work_finish_time + total_idle)
+                r -= (0.8 * (reservation_time-last_work_finish_time + total_idle) + 0.2 * total_q_time_over)
                 break
         return s_prime, r , done
     def run(self, rule):
