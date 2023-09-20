@@ -43,6 +43,7 @@ class DQN:
         optimizer = optim.Adam(q.parameters(), lr=self.r_param["learning_rate"])
         makespan_list = []
         q_over_time_list = []
+        score_list = []
         save_directory = '/Users/shin/DFJSP-Qtime/params_data/' + time_to_string  # 디렉토리 경로를 지정합니다.
         os.makedirs(save_directory, exist_ok=True)  # 경로 없을 시 생성
 
@@ -68,7 +69,7 @@ class DQN:
             # 학습구간
             if memory.size() > 1000:
                 self.train(q, q_target, memory, optimizer)
-            makespan_list, q_over_time_list = self.script_performance(env,n_epi,epsilon,memory, score, False, makespan_list, q_over_time_list)
+            makespan_list, q_over_time_list, score_list = self.script_performance(env,n_epi,epsilon,memory, score, False, makespan_list, q_over_time_list, score_list)
             # 결과 및 파라미터 저장
             if n_epi % print_interval == 0 and n_epi != 0:
                 params = q.state_dict()
@@ -88,7 +89,7 @@ class DQN:
                 score += r
                 if done:
                     break
-            makespan_list, q_over_time_list = self.script_performance(env,n_epi,epsilon,memory, score, True,makespan_list, q_over_time_list)
+            makespan_list, q_over_time_list, score_list = self.script_performance(env,n_epi,epsilon,memory, score, True,makespan_list, q_over_time_list, score_list)
 
             if n_epi % q_load == 0 and n_epi != 0:
                 q_target.load_state_dict(q.state_dict())
@@ -108,11 +109,11 @@ class DQN:
                 break
         Flow_time, machine_util, util, makespan, tardiness, lateness, t_max,q_time_true,q_time_false,q_job_t, q_job_f, q_time = env.performance_measure()
         #env.gantt_chart()
-        return Flow_time, machine_util, util, makespan, score, makespan_list, q_over_time_list
+        return Flow_time, machine_util, util, makespan, score, makespan_list, q_over_time_list, score_list
 
 
 
-    def script_performance(self, env, n_epi, epsilon,memory, score, type, makespan_list, q_over_time_list):
+    def script_performance(self, env, n_epi, epsilon,memory, score, type, makespan_list, q_over_time_list, score_list):
         Flow_time, machine_util, util, makespan, Tardiness_time, Lateness_time, T_max, q_time_true, q_time_false, q_job_t, q_job_f, q_over_time = env.performance_measure()
 
         print("--------------------------------------------------")
@@ -126,15 +127,18 @@ class DQN:
         if type:
             makespan_list.append(makespan)
             q_over_time_list.append(q_over_time)
+            score_list.append(score)
 
-        return makespan_list, q_over_time_list
+        return makespan_list, q_over_time_list, score_list
 
-    def plot_pareto(self, makespan_list, q_over_time_list):
+    def plot_pareto(self, makespan_list, q_over_time_list, score_list):
         pareto_optimal = []
-
         # makespan_list와 q_over_time_list를 결합하여 no_mk_q_list 생성
-        no_mk_q_list = [[x, y, i] for i, (x, y) in enumerate(zip(makespan_list, q_over_time_list))]
-
+        no_mk_q_list = [[x, y, z, i] for i, (x, y, z) in enumerate(zip(makespan_list, q_over_time_list, score_list))]
+        plt.plot([i for i in range(len(score_list))],score_list)
+        plt.show()
+        sort_no_mk_q_list = no_mk_q_list.sort(key=lambda x: x[2], reverse=True)
+        print(sort_no_mk_q_list)
         for i, point in enumerate(no_mk_q_list):
             is_pareto_optimal = True
 
@@ -157,7 +161,6 @@ class DQN:
         plt.title('Pareto Optimal Solutions')
         plt.show()
         print(pareto_optimal)
-
 
 
 

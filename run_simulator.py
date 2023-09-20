@@ -19,9 +19,9 @@ class Run_Simulator:
 
     def main(self, mode, dsp_rule):
         if mode == "DQN":
-             Flow_time, machine_util, util, makespan, score, makespan_list, q_over_time_list = self.DQN.main(self.time_to_string)
+             Flow_time, machine_util, util, makespan, score, makespan_list, q_over_time_list, score_list = self.DQN.main(self.time_to_string)
              print(makespan_list, q_over_time_list )
-             self.DQN.plot_pareto(makespan_list, q_over_time_list)
+             self.DQN.plot_pareto(makespan_list, q_over_time_list, score_list)
         elif mode == "DSP_run":
             self.simulator.run(dsp_rule)
         elif mode == "DSP_check_run":
