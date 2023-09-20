@@ -27,11 +27,12 @@ class Parameters:
         self.r_param = {
             # 강화학습 파라미터
             "gamma": 0.99,
-            "learning_rate": 0.0003,
-            "batch_size": 32,
-            "buffer_limit": 50000,
+            "learning_rate": 0.001,
+            "batch_size": 1024,
+            "buffer_limit": 100000,
             "input_layer" : 12,
-            "output_layer" : 10
+            "output_layer" : 10,
+            "episode" : 1000
         }
 
         self.select_DSP_rule ={
