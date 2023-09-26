@@ -1,0 +1,166 @@
+
+from Object.Job import *
+
+
+class StateManager:
+    def __init__(self):
+        #print("stateManager")
+        self.time = 0
+    def set_state_12(self, j_list, r_list, cuur_time):
+        self.time = cuur_time
+        """
+                재공 정보 :
+                    대기 중인 job들의 개수
+                    작업 중인 job들의 개수
+                    대기 중인 job들의 남은 operation 개수 평균
+                    대기 중인 job들의 tardiness 평균
+                    대기 중인 job들의 q-time 초과 평균
+                    대기 중인 job들의 flow time 평균
+
+                기계 정보 :
+                    기계의 현재 시간
+                    현재 시간 / 다른 기계의 최대 시간
+                    다른 기계들과 차이의 평균
+
+                누적 정보 :
+                    현재까지 total tardiness
+                    현재까지 total q over time
+                    현재까지 처리한 job 개수
+                """
+        s = []
+        number_of_jobs_wait = 0  # clear
+        number_of_jobs_load = 0  # clear
+        total_remain_operation = 0
+        total_tardiness = 0
+        total_q_time_over = 0
+        total_flow_time = 0
+        number_of_job_done = 0  # clear
+
+        total_job_tardiness_done = 0  # clear
+        total_job_q_time_over_done = 0  # clear
+        for job in j_list:  # job 이름과 operation이름 찾기
+            if j_list[job].status == "WAIT":
+                number_of_jobs_wait += 1
+                total_remain_operation += j_list[job].remain_operation
+                total_tardiness += j_list[job].cal_tardiness(self.time)
+                total_q_time_over += j_list[job].cal_q_time(self.time)
+                total_flow_time += j_list[job].cal_flowtime(self.time)
+            elif j_list[job].status == "PROCESSING":
+                number_of_jobs_load += 1
+            elif j_list[job].status == "DONE":
+                number_of_job_done += 1
+                total_job_tardiness_done += j_list[job].tardiness_time
+                q_total = j_list[job].cal_q_time_total()
+                total_job_q_time_over_done += q_total
+
+        current_time = self.time
+        total_reservation_time_diff = 0
+        max_reservation_time = 0
+        for machine in r_list:
+            total_reservation_time_diff += r_list[machine].reservation_time - current_time
+            if max_reservation_time > r_list[machine].reservation_time:
+                max_reservation_time = r_list[machine].reservation_time
+
+        s.append(number_of_jobs_wait)
+        s.append(number_of_jobs_load)
+        if number_of_jobs_wait == 0:
+            for _ in range(4):
+                s.append(0)
+        else:
+            s.append(total_remain_operation / number_of_jobs_wait)
+            s.append(total_tardiness / number_of_jobs_wait)
+            s.append(total_q_time_over / number_of_jobs_wait)
+            s.append(total_flow_time / number_of_jobs_wait)
+
+        s.append(current_time)
+        if max_reservation_time == 0:
+            s.append(0)
+        else:
+            s.append(current_time / max_reservation_time)
+        s.append(total_reservation_time_diff / len(r_list))
+
+        s.append(number_of_job_done)
+        if number_of_job_done == 0:
+            s.append(0)
+            s.append(0)
+        else:
+            s.append(total_job_tardiness_done / number_of_job_done)
+            s.append(total_job_q_time_over_done / number_of_job_done)
+
+        df = pd.Series(s)
+        s = df.to_numpy()
+
+        return s
+
+
+    def set_state_36(self, j_list, r_list, cur_time, job_type):
+        self.time = cur_time
+        """
+        len(1) :
+        stocker job 개수 / 전체 job
+        processing job 개수 / 전체 job
+        종료된 job 개수 / 전체 job
+        setting setup type length / job type length
+        q time over job in stocker / stocker jobs
+        q time safe job in stocker / stocker jobs
+        
+        len(# of machines) :
+        각 기계의 util
+        각 기계의 r_time / max_r_time
+        각 기계의 l_time / max_l_time    
+        """
+        s = []
+        number_of_jobs = len(j_list)
+        number_of_machines = len(r_list)
+        number_of_job_wait = 0
+        number_of_job_load = 0
+        number_of_job_done = 0
+        q_time_over_job = 0
+        q_time_safe_job = 0
+        for job in j_list:  # job 이름과 operation이름 찾기
+            if j_list[job].status == "WAIT":
+                number_of_job_wait += 1
+                check_q_time = j_list[job].check_q_time(cur_time)
+                if check_q_time == 0:
+                    q_time_over_job += 1
+                elif check_q_time == 1:
+                    q_time_safe_job += 1
+                else:
+                    pass
+            elif j_list[job].status == "PROCESSING":
+                number_of_job_load += 1
+            elif j_list[job].status == "DONE":
+                number_of_job_done += 1
+        s.append(number_of_job_wait/number_of_jobs) #1
+        s.append(number_of_job_load/number_of_jobs) #2
+        s.append(number_of_job_done/number_of_jobs) #3
+
+        s.append((q_time_over_job/number_of_job_wait) if number_of_job_wait > 0 else 0) #4
+        s.append((q_time_safe_job / number_of_job_wait) if number_of_job_wait > 0 else 0) #5
+
+        max_last_work_finish_time = 0
+        max_reservation_time = 0
+        reservation_list =[]
+        lwft_list = [] # last work finish time
+        setup_status_list = []
+        for machine in r_list:
+            util = r_list[machine].cal_util2()
+            s.append(util) #7~16
+            reservation_list.append(r_list[machine].reservation_time)
+            lwft_list.append(r_list[machine].last_work_finish_time)
+            setup_status_list.append(r_list[machine].setup_status)
+            if max_reservation_time > r_list[machine].reservation_time:
+                max_reservation_time = r_list[machine].reservation_time
+            if max_last_work_finish_time > r_list[machine].last_work_finish_time:
+                max_last_work_finish_time = r_list[machine].last_work_finish_time
+
+        s.append(len(set(setup_status_list))/job_type) #6
+
+        for i in range(len(reservation_list)):
+            s.append((reservation_list[i]/ max_reservation_time) if max_reservation_time >0 else 0) #17~26
+            s.append((lwft_list[i] /max_last_work_finish_time) if max_last_work_finish_time > 0 else 0) #27~36
+
+        df = pd.Series(s)
+        s = df.to_numpy()
+
+        return s
