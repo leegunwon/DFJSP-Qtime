@@ -5,56 +5,49 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 import os
-from simlator.simulator_DFJSP import *
+from simlator.Simulator import *
 
 import logging
 import random
+from Parameters import *
 
 class DQN:
-    def __init__(self,params, r_param, current_time):
-        print("DQN on")
-        self.params = params
-        self.r_param = r_param
-        self.time_to_string = current_time
-        self.log_path = '/Users/shin/DFJSP-Qtime/log_data/'+self.time_to_string+'performance.log'
-        logging.basicConfig(
-            filename=self.log_path,
-            level=logging.INFO,  # 로그 레벨을 INFO로 설정
-            format='%(asctime)s [%(levelname)s]: %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
+    print("DQN on")
 
-    def train(self, q, q_target, memory, optimizer):
+    @classmethod
+    def train(cls, q, q_target, memory, optimizer):
         for i in range(10):
-            s, a, r, s_prime, done_mask = memory.sample(self.r_param["batch_size"])
+            s, a, r, s_prime, done_mask = memory.sample(Parameters.r_param["batch_size"])
             # q.number_of_time_list[a] += 1
             q_out = q(s)
             q_a = q_out.gather(1, a)
             max_q_prime = q_target(s_prime).max(1)[0].unsqueeze(1)
             # print(max_q_prime.shape)
-            target = r + self.r_param["gamma"] * max_q_prime * done_mask
+            target = r + Parameters.r_param["gamma"] * max_q_prime * done_mask
             loss = F.smooth_l1_loss(q_a, target)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
-    def main(self):
-        env = FJSP_simulator(self.params["p_data"], self.params["s_data"], self.params["q_data"], self.params["rd_data"])
-        q = Qnet(self.r_param["input_layer"], self.r_param["output_layer"])
-        q_target = Qnet(self.r_param["input_layer"], self.r_param["output_layer"])
+    @classmethod
+    def main(cls):
+        env = Simulator
+        q = Qnet(Parameters.r_param["input_layer"], Parameters.r_param["output_layer"])
+        q_target = Qnet(Parameters.r_param["input_layer"], Parameters.r_param["output_layer"])
         q_target.load_state_dict(q.state_dict())
-        memory = ReplayBuffer(self.r_param["buffer_limit"])
+        memory = ReplayBuffer(Parameters.r_param["buffer_limit"])
         print_interval = 1
         q_load = 20
         score = 0.0
-        optimizer = optim.Adam(q.parameters(), lr=self.r_param["learning_rate"])
+        optimizer = optim.Adam(q.parameters(), lr=Parameters.r_param["learning_rate"])
         makespan_list = []
         q_over_time_list = []
         score_list = []
-        save_directory = '/Users/shin/DFJSP-Qtime/params_data/' + self.time_to_string  # 디렉토리 경로를 지정합니다.
-        os.makedirs(save_directory, exist_ok=True)  # 경로 없을 시 생성
+        save_directory = Parameters.save_parameter_directory + Parameters.simulation_time  # 디렉토리 경로를 지정합니다.
+        if Parameters.param_down_on:
+            os.makedirs(save_directory, exist_ok=True)  # 경로 없을 시 생성
 
-        for n_epi in range(self.r_param["episode"]):
+        for n_epi in range(Parameters.r_param["episode"]):
             # 여기는 sample_action 구간
             epsilon = max(0.01, 0.08 - 0.02 * (n_epi / 200))
             s = env.reset()
@@ -75,10 +68,10 @@ class DQN:
 
             # 학습구간
             if memory.size() > 1000:
-                self.train(q, q_target, memory, optimizer)
-            makespan_list, q_over_time_list, score_list = self.script_performance(env,n_epi,epsilon,memory, score, False, makespan_list, q_over_time_list, score_list)
+                cls.train(q, q_target, memory, optimizer)
+            makespan_list, q_over_time_list, score_list = cls.script_performance(env,n_epi,epsilon,memory, score, False, makespan_list, q_over_time_list, score_list)
             # 결과 및 파라미터 저장
-            if n_epi % print_interval == 0 and n_epi != 0:
+            if Parameters.param_down_on:
                 params = q.state_dict()
                 file_name = str(n_epi) + "param.pt"
                 file_path = os.path.join(save_directory, file_name)
@@ -96,7 +89,7 @@ class DQN:
                 score += r
                 if done:
                     break
-            makespan_list, q_over_time_list, score_list = self.script_performance(env,n_epi,epsilon,memory, score, True,makespan_list, q_over_time_list, score_list)
+            makespan_list, q_over_time_list, score_list = cls.script_performance(env,n_epi,epsilon,memory, score, True,makespan_list, q_over_time_list, score_list)
             if n_epi % q_load == 0 and n_epi != 0:
                 q_target.load_state_dict(q.state_dict())
 
@@ -117,34 +110,26 @@ class DQN:
         #env.gantt_chart()
         return Flow_time, machine_util, util, makespan, score, makespan_list, q_over_time_list, score_list
 
-
-
-    def script_performance(self, env, n_epi, epsilon,memory, score, type, makespan_list, q_over_time_list, score_list):
+    @classmethod
+    def script_performance(cls, env, n_epi, epsilon,memory, score, type, makespan_list, q_over_time_list, score_list):
         Flow_time, machine_util, util, makespan, Tardiness_time, Lateness_time, T_max, q_time_true, q_time_false, q_job_t, q_job_f, q_over_time = env.performance_measure()
 
-        print("--------------------------------------------------")
-        print("flow time: {}, util : {:.3f}, makespan : {}".format(Flow_time, util, makespan))
-        print("Tardiness: {}, Lateness : {}, T_max : {}".format(Tardiness_time, Lateness_time, T_max))
-        print("q_true_op: {}, q_false_op : {}, q_true_job : {}, , q_false_job : {} , q_over_time : {}".format(
-            q_time_true, q_time_false, q_job_t, q_job_f, q_over_time))
-        print(
-            "n_episode: {}, score : {:.1f}, n_buffer : {}, eps : {:.1f}%".format(n_epi, score,
-                                                                                 memory.size(), epsilon * 100))
         output_string = "--------------------------------------------------\n" + \
                         f"flow time: {Flow_time}, util : {util:.3f}, makespan : {makespan}\n" + \
                         f"Tardiness: {Tardiness_time}, Lateness : {Lateness_time}, T_max : {T_max}\n" + \
                         f"q_true_op: {q_time_true}, q_false_op : {q_time_false}, q_true_job : {q_job_t}, q_false_job : {q_job_f}, q_over_time : {q_over_time}\n" + \
                         f"n_episode: {n_epi}, score : {score:.1f}, n_buffer : {memory.size()}, eps : {epsilon * 100:.1f}%"
-
+        print(output_string)
         if type:
             makespan_list.append(makespan)
             q_over_time_list.append(q_over_time)
             score_list.append(score)
-
-        logging.info(f'performance :{output_string}')
+        if Parameters.log_on:
+            logging.info(f'performance :{output_string}')
         return makespan_list, q_over_time_list, score_list
 
-    def plot_pareto(self, makespan_list, q_over_time_list, score_list):
+    @classmethod
+    def plot_pareto(cls, makespan_list, q_over_time_list, score_list):
         pareto_optimal = []
         # makespan_list와 q_over_time_list를 결합하여 no_mk_q_list 생성
         no_mk_q_list = [[x, y, z, i] for i, (x, y, z) in enumerate(zip(makespan_list, q_over_time_list, score_list))]

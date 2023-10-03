@@ -5,27 +5,29 @@ Created on Wed Jan 11 16:19:17 2023
 @author: parkh
 """
 import pandas as pd
+
+#todo Job이란 이름 Lot로 변경
 class Job(object):
 
     # Default Constructor
-    def __init__(self, job_id, job_type ,max_operation, setup_table, duedate, q_table, arrival_time, status):
+    def __init__(self, lot_id ,job_id, job_type ,max_operation, duedate, arrival_time, status, oper_list, q_time_table):
         # 고정 정보
-        self.id = job_id #job번호
+        self.id = lot_id #job번호
+        self.job_id = job_id
         self.job_type = job_type #job type이 뭔지
         self.max_operation = max_operation # 이 job의 max operation이 언젠지
         self.duedate = duedate # 이 job의 duedate가 언제인지
-        
+        self.oper_list= oper_list
+        self.q_time_table = q_time_table
         """
         공정 수 만큼 존재함
         [10, 14, 25, 34] J11 -> J12를 작업할 때 까지 10시간 안에 작업해야함
         """
-        self.q_time_table = q_table 
-        
-        self.setup_table = setup_table #이 job의 setup 테이블
         self.job_arrival_time = arrival_time
         
         #변화하는 데이터
-        self.current_operation_id = 1 #현재 공정이 어디인지
+        self.oper_number = 0
+        self.current_operation_id = oper_list[self.oper_number]  # 현재 공정이 어디인지
         #status 종류 -> "WAIT", "NOTYET", "DONE", "PROCESSING"
         self.status = status # 현재 job의 상태가 무엇인지
         self.remain_operation = self.max_operation #이 job의 남은 operation이 몇 개인지
@@ -38,35 +40,34 @@ class Job(object):
         self.tardiness_time = 0 #job의 tardiness time
         self.lateness_time = 0 # job의 lateness time
         self.operation_in_machine = [0 for x in range(max_operation)] #각각의 operation이 어떤 machine에 있었는지
-        self.q_time_check_list = [ 0 for x in range(self.max_operation-1)]
-    def jop(self):
-        jop = ''
-        if self.job_type < 10:
-            jop = "j0"+str(self.job_type)
-        else:
-            jop = "j"+str(self.job_type)
-        jop = jop+"0"+str(self.current_operation_id)
-        return jop
+        self.q_time_check_list = {}
     
     def assign_setting(self, machine, assign_time):
         machine_id = machine.id
-        machine_number = int(machine_id[1:])
-        self.operation_in_machine[self.current_operation_id - 1] = machine_number
+        #todo 각각의 공정이 어떤 machine에서 작업됐는지 기록
         self.status = "PROCESSING"
         self.remain_operation -= 1
         q_time_diff = "None"
-        if self.current_operation_id != 1:
-            q_time_diff =  max(0, (assign_time - self.start_time) - self.q_time_table[self.current_operation_id - 2])
-            self.q_time_check_list[self.current_operation_id - 2] = q_time_diff
+        if self.oper_number != 0:
+            if self.q_time_table[self.current_operation_id] == 0:
+                q_time_diff = 0
+            else:
+                q_time_diff = max(0, (assign_time - self.start_time) - self.q_time_table[self.current_operation_id])
+            self.q_time_check_list[self.current_operation_id] = q_time_diff
             if q_time_diff > 0:
                 self.condition = False
-        self.current_operation_id +=1
+
+        self.oper_number += 1
+        if self.oper_number == self.max_operation:
+            self.current_operation_id = "DONE"
+        else:
+            self.current_operation_id = self.oper_list[self.oper_number]
         return q_time_diff
     
     def complete_setting(self,start_time, end_time,event_type):
         self.status = "WAIT"
         last = False
-        self.start_time = end_time
+        self.start_time = end_time #q_time을 체크하는 time임
         if event_type == "track_in_finish" and self.remain_operation == 0:
             self.job_flowtime += end_time - self.job_arrival_time
             self.tardiness_time = max(0 , end_time-self.duedate)
@@ -91,11 +92,11 @@ class Job(object):
         if self.start_time == 0:
             return 0
         else:
-            q_time_diff = max(0, (c_time - self.start_time) - self.q_time_table[self.current_operation_id - 2])
+            q_time_diff = max(0, (c_time - self.start_time) - self.q_time_table[self.current_operation_id])
             return q_time_diff
         
     def cal_q_time_total(self):
-        total_q = sum(self.q_time_check_list)
+        total_q = sum(self.q_time_check_list.values())
         return total_q
 
     def check_q_time(self, c_time):
@@ -106,6 +107,7 @@ class Job(object):
             return 1
         else:
             return 0
+
 
 
 

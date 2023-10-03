@@ -1,7 +1,7 @@
 import torch
 
 import collections
-from simlator.simulator_DFJSP import *
+from simlator.Simulator import *
 class ReplayBuffer():  # buffer class
     def __init__(self, buffer_limit):
         self.buffer = collections.deque(maxlen=buffer_limit)

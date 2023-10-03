@@ -7,7 +7,7 @@ import copy
 import random
 from matplotlib import pyplot as plt
 
-from Parameter import *
+from Parameters import *
 class GanttChart:
     def __init__(self, plotlydf, plotlydf_arrival_and_due):
         print("gantt_on")

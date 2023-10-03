@@ -3,11 +3,10 @@ from Object.Job import *
 
 
 class StateManager:
-    def __init__(self):
-        #print("stateManager")
-        self.time = 0
-    def set_state_12(self, j_list, r_list, cuur_time):
-        self.time = cuur_time
+    state_time = 0
+    @classmethod
+    def set_state_12(cls, j_list, r_list, cuur_time):
+        cls.state_time = cuur_time
         """
                 재공 정보 :
                     대기 중인 job들의 개수
@@ -92,9 +91,9 @@ class StateManager:
 
         return s
 
-
-    def set_state_36(self, j_list, r_list, cur_time, job_type):
-        self.time = cur_time
+    @classmethod
+    def set_state_36(cls, j_list, r_list, cur_time, number_of_job_type):
+        cls.state_time = cur_time
         """
         len(1) :
         stocker job 개수 / 전체 job
@@ -154,7 +153,7 @@ class StateManager:
             if max_last_work_finish_time > r_list[machine].last_work_finish_time:
                 max_last_work_finish_time = r_list[machine].last_work_finish_time
 
-        s.append(len(set(setup_status_list))/job_type) #6
+        s.append(len(set(setup_status_list))/number_of_job_type) #6
 
         for i in range(len(reservation_list)):
             s.append((reservation_list[i]/ max_reservation_time) if max_reservation_time >0 else 0) #17~26
