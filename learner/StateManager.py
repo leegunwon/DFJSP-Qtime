@@ -1,5 +1,5 @@
 
-from Object.Job import *
+from Object.Lot import *
 
 
 class StateManager:

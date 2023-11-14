@@ -7,7 +7,7 @@ Created on Wed Jan 11 16:19:17 2023
 import pandas as pd
 
 #todo Job이란 이름 Lot로 변경
-class Job(object):
+class Lot(object):
 
     # Default Constructor
     def __init__(self, lot_id ,job_id, job_type ,max_operation, duedate, arrival_time, status, oper_list, q_time_table):
@@ -33,6 +33,7 @@ class Job(object):
         self.remain_operation = self.max_operation #이 job의 남은 operation이 몇 개인지
         self.start_time = 0
         self.condition = True
+        self.act_end_time = 0
         # For History and KPI
         
         self.history_list = []
@@ -63,7 +64,15 @@ class Job(object):
         else:
             self.current_operation_id = self.oper_list[self.oper_number]
         return q_time_diff
-    
+
+    def oper_check_for_meta(self):
+        self.oper_number += 1
+        if self.oper_number == self.max_operation:
+            self.oper_number = 0
+            self.current_operation_id = self.oper_list[self.oper_number]
+        else:
+            self.current_operation_id = self.oper_list[self.oper_number]
+
     def complete_setting(self,start_time, end_time,event_type):
         self.status = "WAIT"
         last = False
@@ -75,10 +84,13 @@ class Job(object):
             last = True
         if last == True:
             self.status = "DONE"
+        self.act_end_time = end_time
         return last
-
     def arrival(self):
         self.status = "WAIT"
+
+    def change_next_oper(self):
+        self.oper_number += 1
         
     def cal_flowtime(self, c_time):
         flow = c_time - self.job_arrival_time

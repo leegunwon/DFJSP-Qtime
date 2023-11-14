@@ -10,4 +10,5 @@ class DataSet(Base):
     dataSetId = Column(String(50), primary_key=True)
     dataDesc = Column(String(255))
     createUser = Column(String(50))
-    isUpdated = Column(DateTime, default=datetime.now)  # 기본값 설정
+    isCreated = Column(DateTime)
+    isUpdated = Column(DataTime)  # 기본값 설정

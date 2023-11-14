@@ -5,7 +5,7 @@ Created on Wed Jan 11 16:19:17 2023
 @author: parkh
 """
 import pandas as pd
-from Object.Job import *
+from Object.Lot import *
 from Object.Resource import *
 
 class Event(object):
