@@ -10,7 +10,7 @@ from simlator.simulator_DFJSP import *
 class Qnet(nn.Module):
     def __init__(self):
         super(Qnet, self).__init__()
-        self.fc1 = nn.Linear(36,64)
+        self.fc1 = nn.Linear(24,64)
         self.fc2 = nn.Linear(64,32)
         self.fc3 = nn.Linear(32,10)
     

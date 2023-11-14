@@ -2,15 +2,15 @@ from sqlalchemy import create_engine, Column, String, DateTime, Integer
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import declarative_base  # 모듈 변경
 from datetime import datetime  # datetime 모듈 임포트
-
+from Parameters import *
 
 class DB_query:
-    host = 'localhost'
-    port = 3306
-    user = 'root'
-    passwd = '1234'
-    db = 'fjsp_simulator_db'
-    charset = 'utf8'
+    host = Parameters.db_setting["host"]
+    port = Parameters.db_setting["port"]
+    user = Parameters.db_setting["user"]
+    passwd = Parameters.db_setting["passwd"]
+    db = Parameters.db_setting["db"]
+    charset = Parameters.db_setting["charset"]
 
     # SQLAlchemy 연결 엔진 생성
     db_url = f"mysql+pymysql://{user}:{passwd}@{host}:{port}/{db}?charset={charset}"
@@ -22,6 +22,7 @@ class DB_query:
 
     @classmethod
     def get_all_by_table(cls, dataSetId, table):
+        #해당 데이터셋, 해당 테이블의 값을 모두 가져옴
         alls = cls.session.query(table).filter_by(dataSetId=dataSetId).all()
         return alls
     @classmethod
@@ -33,11 +34,13 @@ class DB_query:
 
     @classmethod
     def get_job_type(cls, dataSetId, table ,jobId):
+        #jobId의 jobType을 가져옴
         row = cls.session.query(table).filter_by(dataSetId=dataSetId, jobId = jobId).first()
         return row.jobType
 
     @classmethod
     def get_all_operation_of_job(cls, dataSetId, table, jobId):
+        # 해당 job의 모든 operation을 가져옴
         rows = cls.session.query(table).filter_by(dataSetId=dataSetId, jobId=jobId).all()
         oper_list = []
         for row in rows:

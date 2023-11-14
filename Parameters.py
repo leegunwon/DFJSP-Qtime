@@ -11,25 +11,25 @@ class Parameters:
     """
     # 여기에 파라미터를 초기화합니다.'
     print("parameter load")
-    data = {
-        # 데이터 링크
-        "p_data" : "/Users/shin/DFJSP-Qtime/test_data/FJSP_Sim_10_zero.csv",
-        "s_data" : "/Users/shin/DFJSP-Qtime/test_data/FJSP_Set_10.csv",
-        "q_data" : "/Users/shin/DFJSP-Qtime/test_data/Q-time/FJSP_Q_time_10_0.4.csv",
-        "rd_data" : "/Users/shin/DFJSP-Qtime/test_data/rd_time/10/FJSP_rd_time_10_10,60.csv"
-    }
-
-    db_data = "MK01"
 
     r_param = {
         # 강화학습 파라미터
         "gamma": 0.99,
-        "learning_rate": 0.0004,
+        "learning_rate": 0.0001,
         "batch_size": 64,
         "buffer_limit": 100000,
-        "input_layer" : 24,
+        "input_layer" : 51,
         "output_layer" : 10,
         "episode" : 10000
+    }
+
+    db_setting =  {
+        "host" : 'localhost',
+        "port" : 3306,
+        "user" : 'root',
+        "passwd" : '1234',
+        "db" : 'fjsp_simulator_db',
+        "charset" : 'utf8'
     }
 
     select_DSP_rule ={
@@ -64,7 +64,7 @@ class Parameters:
     }
 
 
-    gantt_on ={
+    gantt_on = {
         "mahicne_on_job_number" : False,
         "machine_gantt" : False,
         "DSP_gantt" : True,
@@ -74,22 +74,23 @@ class Parameters:
         "job_gantt_for_Q_time" : True
     }
 
-    gantt_on = True # 간트 껏다 키기
+    gantt_on_check = True # 간트 껏다 키기
     log_on = True #log 껐다 키기
     param_down_on = True #파라미터 다운 끄기
+    meta_ver = True
 
-
-    reward_type = "makespan"
+    db_data = ""
+    reward_type = ""
 
     simulation_time = ""
+    log_path = ""
+
     save_log_directory = "/Users/shin/DFJSP-Qtime/log_data/"
     save_parameter_directory = "/Users/shin/DFJSP-Qtime/params_data/"
 
-    log_path = ""
-
     @classmethod
     def set_check_gantt_on(cls, check_gantt):
-        cls.gantt_on = check_gantt
+        cls.gantt_on_check = check_gantt
 
     @classmethod
     def set_check_log(cls, check_log):
@@ -108,6 +109,10 @@ class Parameters:
         cls.param_down_on = check_param
 
     @classmethod
+    def set_meta_ver(cls, meta_ver_check):
+        cls.meta_ver = meta_ver_check
+
+    @classmethod
     def set_reward_type(cls, reward_type):
         cls.reward_type = reward_type
 
@@ -124,5 +129,7 @@ class Parameters:
     @classmethod
     def set_dataSetId(cls, dataSetId):
         cls.db_data = dataSetId
+
+
 
 

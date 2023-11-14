@@ -4,7 +4,7 @@ from Object.Event import *
 from simlator.dispatcher import *
 from collections import defaultdict
 from Object.Resource import *
-from Object.Job import *
+from Object.Lot import *
 
 from learner.StateManager import *
 from learner.RewardManager import *
@@ -19,17 +19,17 @@ from model.ProcessingTime_db import *
 from model.Setup_db import *
 from model.Demand_db import *
 from model.machine_db import *
+import pickle
 
 class Simulator:
     machine_list = {} #id로 객체 보관
-    job_list = {} #lot id로 객체 보관
+    lot_list = {} #lot id로 객체 보관
     number_of_machine = 0
     number_of_job = 0
 
     #todo 기본 값 세팅 해주어야함
     Q_time_table = {} # {"j0101" : 5 , "j0203" : 5}
     Processing_time_table = {} # {"j0101" : {"M1" : 5, "M2" : 10}, ...}
-    Setup_table = {}  # {"M1" :{"J0":{"J1" : 5, "J2" :10},...}, "M2" :{"M1":5 , "M2":10}} #3중 딕셔너리..
     job_info = {} #max oper, job type, operation list
 
     dispatcher = Dispatcher()
@@ -44,6 +44,10 @@ class Simulator:
     j2 = 0
 
     dataSetId = ''
+
+
+    # 데이터 프레임 리스트를 피클링하여 파일에 저장
+
     @classmethod
     def _init(cls, dataSetId):
         """
@@ -63,12 +67,17 @@ class Simulator:
 
         cls.get_oper_info(cls.dataSetId)
         cls.get_lot(cls.dataSetId)
+
+        with open('data_lot_machine.pkl', 'wb') as file:
+            df_list = [cls.lot_list, cls.machine_list, cls.event_list]
+            pickle.dump(df_list, file)
+
     @classmethod
     def reset(cls):
         # 리셋 부분
         cls.done = False #종료조건 판단
         cls.machine_list = defaultdict(Resource)
-        cls.job_list = defaultdict(Job)
+        cls.lot_list = defaultdict(Lot)
         cls.runtime = 0  # 시간
         cls.plotlydf = pd.DataFrame([], columns=['Type', 'JOB_ID', 'Task', 'Start', 'Finish', 'Resource', 'Rule', 'Step',
                                              'Q_diff', 'Q_check'])
@@ -78,14 +87,16 @@ class Simulator:
         cls.event_list = []
         cls.j = 0
         cls.j2 = 0
+        cls.j3 = 0
 
-        cls.get_job_info(cls.dataSetId)
-        cls.get_machine(cls.dataSetId)
+        with open('data_lot_machine.pkl', 'rb') as file:
+            loaded_df_list = pickle.load(file)
 
-        cls.get_oper_info(cls.dataSetId)
-        cls.get_lot(cls.dataSetId)
+        cls.lot_list = loaded_df_list[0]
+        cls.machine_list = loaded_df_list[1]
+        cls.event_list = loaded_df_list[2]
 
-        s = [0] * 24
+        s = [0] * Parameters.r_param["input_layer"]
         df = pd.Series(s)
         s = df.to_numpy()
         
@@ -96,22 +107,23 @@ class Simulator:
         while True:
             machineId = cls.select_machine()
             if machineId == "NONE":
-                cls.process_event()
                 #이벤트도 비워져 있고, #job들도 다 done이면 종료
-                if len(cls.event_list) == 0 and all(cls.job_list[job].status == "DONE" for job in cls.job_list):
+                if len(cls.event_list) == 0 and all(cls.lot_list[job].status == "DONE" for job in cls.lot_list):
                     done = True
-                    s_prime = StateManager.set_state_36(cls.job_list, cls.machine_list, cls.runtime, cls.number_of_job)
+                    s_prime = StateManager.set_state_36(cls.lot_list, cls.machine_list, cls.runtime, cls.number_of_job)
                     df = pd.Series(s_prime)
                     s_prime = df.to_numpy()
                     r = 0
                     break
+                else:
+                    cls.process_event()
             else:
                 candidate_list = cls.get_candidate(machineId)
                 candidate_list, rule_name = cls.dispatcher.dispatching_rule_decision(candidate_list ,action, cls.runtime)
                 cls.get_event(candidate_list[0], machineId, rule_name)
 
-                s_prime = StateManager.set_state_36(cls.job_list, cls.machine_list, cls.runtime, cls.number_of_job)
-                r , cls.machine_list = cls.rewardManager.get_reward(Parameters.reward_type, machineId , cls.job_list, cls.machine_list, cls.runtime)
+                s_prime = StateManager.set_state_36(cls.lot_list, cls.machine_list, cls.runtime, cls.number_of_job)
+                r , cls.machine_list = cls.rewardManager.get_reward(Parameters.reward_type, machineId , cls.lot_list, cls.machine_list, cls.runtime)
                 break
         return s_prime, r , done
     @classmethod
@@ -124,14 +136,14 @@ class Simulator:
                 candidate_list, rule_name = cls.dispatcher.dispatching_rule_decision(candidate_list, rule_number, cls.runtime)
                 cls.get_event(candidate_list[0], machineId, rule_name)
             else:
-                if len(cls.event_list) == 0:
+                if len(cls.event_list) == 0 and all(cls.lot_list[job].status == "DONE" for job in cls.lot_list):
                     break
                 cls.process_event()
                 
         
         Flow_time, machine_util, util, makespan, tardiness, lateness, t_max,q_time_true,q_time_false,q_job_t, q_job_f, q_time = cls.performance_measure()
         gantt = GanttChart(cls.plotlydf, cls.plotlydf_arrival_and_due)
-        if Parameters.gantt_on:
+        if Parameters.gantt_on_check:
             gantt.play_gantt()
 
 
@@ -170,7 +182,7 @@ class Simulator:
                     event_type = "NOTHING"
             else:
                 #print(event.job)
-                event_type = "j"+str(event.job.job_type)
+                event_type = event.job.job_type
                 last = event.job.complete_setting(event.start_time, event.end_time ,event.event_type) # 작업이 대기로 변함, 시작시간, 종료시간, event_type
                 event.machine.complete_setting(event.start_time, event.end_time ,event.event_type) # 기계도 사용가능하도록 변함
             rule = event.rule_name
@@ -194,32 +206,32 @@ class Simulator:
         selected_machine = "NONE"
         for machineId in cls.machine_list:
             if cls.machine_list[machineId].status == "WAIT":
-                #todo job_list를 분류 시켜놓을 필요가 있을듯
+                #todo lot_list를 분류 시켜놓을 필요가 있을듯
                 # 예를 들어 현재 stocker에 있을 때 마다 이동? 번거롭더라도 스토커만 확인하는게 맞으니..
                 # 종료된 작업이 있는 공간, stocker, 그리고 도착 예정 공간 세개로 나눠서 job을 배치
-                for job in cls.job_list: #job 이름과 operation이름 찾기
-                    if cls.job_list[job].status != "WAIT": #해당 jop가 작업중일 경우
+                for lotId in cls.lot_list: #job 이름과 operation이름 찾기
+                    if cls.lot_list[lotId].status != "WAIT": #해당 jop가 작업중일 경우
                         pass
                     #TODO 해당 작업이 해당 기계에서 처리 가능한지 확인해야함
-                    elif cls.can_process_oper_in_machine(cls.job_list[job] ,machineId) == False:
+                    elif cls.can_process_oper_in_machine(cls.lot_list[lotId] ,machineId) == False:
                         pass
                     else:
                         selected_machine = machineId
-                        continue
+                        break
                 if selected_machine != "NONE":
-                    continue
+                    break
         return selected_machine
 
     @classmethod
     def get_candidate(cls, machineId):
         #todo machine_id와 machine 객체에 대한 구분이 명확해야 할듯
         candidate_list = []
-        for job in cls.job_list:
-            if cls.job_list[job].status == "WAIT":
-                jobOperId = cls.job_list[job].current_operation_id
-                setup_time = cls.machine_list[machineId].get_setup_time(cls.job_list[job].job_type)
-                if cls.can_process_oper_in_machine(cls.job_list[job], machineId):
-                    candidate_list.append([cls.job_list[job],cls.Processing_time_table[jobOperId][machineId], setup_time,jobOperId])
+        for lotId in cls.lot_list:
+            if cls.lot_list[lotId].status == "WAIT":
+                jobOperId = cls.lot_list[lotId].current_operation_id
+                setup_time = cls.machine_list[machineId].get_setup_time(cls.lot_list[lotId].job_type)
+                if cls.can_process_oper_in_machine(cls.lot_list[lotId], machineId):
+                    candidate_list.append([cls.lot_list[lotId],cls.Processing_time_table[jobOperId][machineId], setup_time,jobOperId])
 
         return candidate_list
 
@@ -240,6 +252,50 @@ class Simulator:
         cls.step_number +=1
 
     @classmethod
+    def get_event_meta(cls, candidate, machineId):
+        step_num = cls.step_number
+        job, process_time, setup_time, jop = candidate
+        start_time = max(cls.machine_list[machineId].last_work_finish_time, job.act_end_time)
+        if setup_time != 0:  # setup event 발생
+            e = Event(job, "setup", cls.machine_list[machineId], start_time, start_time + setup_time,
+                      "setup_change",
+                      "NONE", step_num, setup_time, 0)
+            cls.event_list.append(e)
+        q_time_diff = cls.assign_setting(job, cls.machine_list[machineId],
+                                         start_time + setup_time + process_time)
+        e = Event(job, jop, cls.machine_list[machineId], start_time, start_time + setup_time + process_time,
+                  "track_in_finish", "meta", step_num, setup_time, q_time_diff)
+        cls.event_list.append(e)
+        cls.step_number += 1
+
+    @classmethod
+    def get_fittness_with_meta_heuristic(cls, job_seq , mac_seq,a=None):
+        # chromosome = [[machine seq], [job seq]]
+        """
+            받은 해를 이용해 이벤트를 생성하고 process event로 처리해야함
+            [1,2,1,2,1] ,[2,3,1,4,5]
+        """
+        for i in range(len(job_seq)):
+            lotId = job_seq[i]
+            machineId = mac_seq[i]
+            jobOperId = cls.lot_list[lotId].current_operation_id
+            setup_time = cls.machine_list[machineId].get_setup_time(cls.lot_list[lotId].job_type)
+            #print("oper: "+ jobOperId+ " "+"machine:" + machineId +" "+ str(cls.Processing_time_table[jobOperId][machineId]))
+            candidate = ([cls.lot_list[lotId], cls.Processing_time_table[jobOperId][machineId], setup_time, jobOperId])
+            cls.get_event_meta(candidate, machineId)
+            while cls.event_list:
+                cls.process_event()
+
+        makespan = 0
+        for machine in cls.machine_list:
+            if makespan < cls.machine_list[machine].last_work_finish_time:
+                makespan = cls.machine_list[machine].last_work_finish_time
+
+        if a != None :
+            cls.gantt_chart()
+        cls.reset()
+        return makespan
+    @classmethod
     def get_machine(cls, dataSetId):
         #todo 해당 데이터 셋에 해당하는 기계정보를 전부 가져옴 -> 기계 id를
         #todo 기계 정보를 이용해 machine 객체들을 생성함
@@ -252,21 +308,28 @@ class Simulator:
             cls.machine_list[machine.machineId] = r
     @classmethod
     def get_lot(cls, dataSetId):
+        # todo 만약 메타휴리스틱으로 실행시킬 경우에는 lotID를 메타휴리스틱에 적합하도록 설정하는 처리 필요
         jobs = DB_query.get_all_by_table(dataSetId, Demand_db)
         for job in jobs:
-            lot_id = job.demandId + "-" + job.jobId
+            if Parameters.meta_ver:
+                lot_id = job.jobId
+            else:
+                lot_id = job.demandId + "-" + job.jobId
             status = ("NOTYET" if job.arrivalData != 0 else "WAIT")
             oper_list = cls.job_info[job.jobId]["oper_list"]
             q_time_table = cls.get_q_time_table_of_opers(oper_list)
 
-            j = Job(lot_id, job.jobId, cls.job_info[job.jobId]["job_type"] , cls.job_info[job.jobId]["max_oper"]
+            j = Lot(lot_id, job.jobId, cls.job_info[job.jobId]["job_type"] , cls.job_info[job.jobId]["max_oper"]
                     , job.duedate, job.arrivalData, status, oper_list, q_time_table)
-            cls.job_list[lot_id] = j
-
+            cls.lot_list[lot_id] = j
+            if status == "NOTYET":
+                e = Event(j, "job_arrival", "NONE", cls.runtime, job.arrivalData, "job_arrival", "NONE", "NONE", "NONE", 0)
+                cls.event_list.append(e)
     @classmethod
     def get_job_info(cls, dataSetId):
         jobs = DB_query.get_all_by_table(dataSetId, Job_db)
         cls.number_of_job = len(jobs)
+        print(type(jobs[0]))
         for job in jobs:
             job_info = {}
             job_info["max_oper"] = job.maxOper
@@ -331,26 +394,50 @@ class Simulator:
             value_time_table.append(value_added_time)
             full_time_table.append(full_time)
         util = sum(value_time_table) / sum(full_time_table)
-        for jobId in cls.job_list:
+        for lotId in cls.lot_list:
             #todo jobFlow time 네이밍
-            Flow_time += cls.job_list[jobId].job_flowtime
-            if cls.job_list[jobId].tardiness_time > T_max:
-                T_max = cls.job_list[jobId].tardiness_time
-            Tardiness_time += cls.job_list[jobId].tardiness_time
-            Lateness_time += cls.job_list[jobId].lateness_time
+            Flow_time += cls.lot_list[lotId].job_flowtime
+            if cls.lot_list[lotId].tardiness_time > T_max:
+                T_max = cls.lot_list[lotId].tardiness_time
+            Tardiness_time += cls.lot_list[lotId].tardiness_time
+            Lateness_time += cls.lot_list[lotId].lateness_time
             k = []
-            for q in cls.job_list[jobId].q_time_check_list.values():
+            for q in cls.lot_list[lotId].q_time_check_list.values():
                 k.append(q)
                 if q > 0:
                     q_time_false += 1
                 else:
                     q_time_true += 1
             z.append(k)
-            if cls.job_list[jobId].condition == True:
+            if cls.lot_list[lotId].condition == True:
                 q_job_t += 1
             else:
                 q_job_f += 1
-            total_q_time_over += cls.job_list[jobId].cal_q_time_total()
+            total_q_time_over += cls.lot_list[lotId].cal_q_time_total()
         # fig = px.timeline(self.plotlydf, x_start="Start", x_end="Finish", y="Resource", color="Task", width=1000, height=400)
         # fig.show()
         return Flow_time, machine_util, util, makespan, Tardiness_time, Lateness_time, T_max, q_time_true, q_time_false, q_job_t, q_job_f, total_q_time_over
+
+
+    @classmethod
+    def get_job_seq(cls):
+        job_seq = []
+        for i in cls.job_info:
+            for j in range(cls.job_info[i]["max_oper"]):
+                job_seq.append(i)
+        return job_seq
+
+    @classmethod
+    def get_random_machine(cls, job):
+        operId = cls.lot_list[job].current_operation_id
+        mac_list = cls.Processing_time_table[operId]
+        change_mac_list = []
+        for mac, p_time in mac_list.items():
+            if p_time != 0:
+                change_mac_list.append(mac)
+
+        return random.choice(change_mac_list)
+
+
+
+
