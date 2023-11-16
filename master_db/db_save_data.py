@@ -277,10 +277,10 @@ insert_db(
     dataSetId= "DFJSP_10_60_0.4",
     dataDesc = "DFJSP mac_10 arrive_60, q_0.4",
     create_user = "hyungchan_shin",
-    p_data = pd.read_csv("/Users/shin/DFJSP-Qtime/test_data/FJSP_Sim_10_zero.csv", index_col=(0)),
-    s_data = pd.read_csv("/Users/shin/DFJSP-Qtime/test_data/FJSP_Set_10.csv",index_col=(0)),
-    rd_data = pd.read_csv("/Users/shin/DFJSP-Qtime/test_data/rd_time/10/FJSP_rd_time_10_10,60.csv",index_col=(0)),
-    q_data = pd.read_csv("/Users/shin/DFJSP-Qtime/test_data/Q-time/FJSP_Q_time_10_0.4.csv",index_col=(0))
+    p_data = pd.read_csv("/test_data/FJSP_Sim_10_zero.csv", index_col=(0)),
+    s_data = pd.read_csv("/test_data/FJSP_Set_10.csv", index_col=(0)),
+    rd_data = pd.read_csv("/test_data/rd_time/10/FJSP_rd_time_10_10,60.csv", index_col=(0)),
+    q_data = pd.read_csv("/test_data/Q-time/FJSP_Q_time_10_0.4.csv", index_col=(0))
 
 )
 

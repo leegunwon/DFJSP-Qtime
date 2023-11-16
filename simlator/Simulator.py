@@ -1,17 +1,13 @@
-
-from learner import RewardManager
 from Object.Event import *
 from simlator.dispatcher import *
 from collections import defaultdict
 from Object.Resource import *
-from Object.Lot import *
 
 from learner.StateManager import *
 from learner.RewardManager import *
 from simlator.GanttChart import *
-
-from Parameters import *
-from DB_query import *
+from master_db.DataInventory import *
+from master_db.DB_query import *
 
 from model.Job_db import *
 from model.Oper_db import *
@@ -172,6 +168,8 @@ class Simulator:
         cls.event_list.sort(key = lambda x:x.end_time, reverse = False)
         event = cls.event_list.pop(0)
         cls.runtime = event.end_time
+        if Parameters.log_history:
+            event.send_db(cls.dataSetId, Parameters.simulation_time)
         if event.event_type == "job_arrival":
             event.job.arrival()
         else:
@@ -195,7 +193,24 @@ class Simulator:
             cls.plotlydf.loc[cls.j] = dict(Type = event_type, JOB_ID = event.job.id  ,Task=event.jop, Start=start, Finish=end, Resource=event.machine.id, Rule = rule,
                                              Step = step, Q_diff = q_time_diff, Q_check = q_time_check) #간트차트를 위한 딕셔너리 생성, 데이터프레임에 집어넣음
             cls.j+=1
-    
+
+    @classmethod
+    def process_event_meta(cls):
+        cls.event_list.sort(key=lambda x: x.end_time, reverse=False)
+        event = cls.event_list.pop(0)
+        cls.runtime = event.end_time
+        if event.event_type != "track_in_finish":
+            if event.event_type == "setup_change":
+                event_type = "setup"
+            elif event.event_type == "NOTHING":
+                event_type = "NOTHING"
+        else:
+            # print(event.job)
+            event_type = event.job.job_type
+            last = event.job.complete_setting(event.start_time, event.end_time,
+                                              event.event_type)  # 작업이 대기로 변함, 시작시간, 종료시간, event_type
+            event.machine.complete_setting(event.start_time, event.end_time, event.event_type)
+
     @classmethod
     def assign_setting(cls, job, machine,reservation_time): #job = 1 machine = 1
         q_time_diff = job.assign_setting(machine, cls.runtime)
@@ -221,6 +236,28 @@ class Simulator:
                 if selected_machine != "NONE":
                     break
         return selected_machine
+    @classmethod
+    def get_least_time_machine(cls, job):
+        lot = cls.lot_list[job]
+        jobOperId = lot.current_operation_id
+        best_machine = ""
+        shortest_time = 10000000
+        for machineId in cls.machine_list:
+            setup_time = cls.machine_list[machineId].get_setup_time(lot.job_type)
+            processing_time = cls.Processing_time_table[jobOperId][machineId]
+            if processing_time == 0 :
+                continue
+            start_time = max(cls.machine_list[machineId].last_work_finish_time, lot.act_end_time)
+            total_time = setup_time + processing_time + start_time
+            if shortest_time > total_time:
+                shortest_time = total_time
+                best_machine = machineId
+
+        candidate = ([lot, cls.Processing_time_table[jobOperId][best_machine], cls.machine_list[best_machine].get_setup_time(lot.job_type), jobOperId])
+        cls.get_event_meta(candidate, best_machine)
+        while cls.event_list:
+            cls.process_event_meta()
+        return best_machine
 
     @classmethod
     def get_candidate(cls, machineId):
@@ -284,7 +321,7 @@ class Simulator:
             candidate = ([cls.lot_list[lotId], cls.Processing_time_table[jobOperId][machineId], setup_time, jobOperId])
             cls.get_event_meta(candidate, machineId)
             while cls.event_list:
-                cls.process_event()
+                cls.process_event_meta()
 
         makespan = 0
         for machine in cls.machine_list:
@@ -300,7 +337,7 @@ class Simulator:
         #todo 해당 데이터 셋에 해당하는 기계정보를 전부 가져옴 -> 기계 id를
         #todo 기계 정보를 이용해 machine 객체들을 생성함
         # 생성한 객체들을 machine_list에 딕셔너리 형태로 저장함
-        machines = DB_query.get_all_by_table(dataSetId, Machine_db)
+        machines = DataInventory.get_machine_db_data()
         cls.number_of_machine = len(machines)
         for machine in machines:
             setup_time_table = cls.get_setup_time_table(dataSetId, machine)
@@ -309,7 +346,7 @@ class Simulator:
     @classmethod
     def get_lot(cls, dataSetId):
         # todo 만약 메타휴리스틱으로 실행시킬 경우에는 lotID를 메타휴리스틱에 적합하도록 설정하는 처리 필요
-        jobs = DB_query.get_all_by_table(dataSetId, Demand_db)
+        jobs = DataInventory.get_demand_db_data()
         for job in jobs:
             if Parameters.meta_ver:
                 lot_id = job.jobId
@@ -327,36 +364,36 @@ class Simulator:
                 cls.event_list.append(e)
     @classmethod
     def get_job_info(cls, dataSetId):
-        jobs = DB_query.get_all_by_table(dataSetId, Job_db)
+        jobs = DataInventory.get_job_db_data()
         cls.number_of_job = len(jobs)
-        print(type(jobs[0]))
+        #print(type(jobs[0]))
         for job in jobs:
             job_info = {}
             job_info["max_oper"] = job.maxOper
             job_info["job_type"] = job.jobType
-            oper_list = DB_query.get_all_operation_of_job(dataSetId,Oper_db,job.jobId)
+            #oper_list = DB_query.get_all_operation_of_job(dataSetId,Oper_db,job.jobId)
+            oper_list = DataInventory.sim_data.get_oper_list_by_job(job.jobId)
             job_info["oper_list"] = oper_list
             cls.job_info[job.jobId] = job_info
 
     @classmethod
     def get_oper_info(cls, dataSetId):
-        opers = DB_query.get_all_by_table(dataSetId, Oper_db)
+        opers = DataInventory.get_oper_db_data()
         for oper in opers:
             cls.Q_time_table[oper.operId] = oper.operQtime
             for machineId in cls.machine_list:
-                processing_time = DB_query.get_processing_time(dataSetId, ProcessingTime_db,oper.operId,
-                                                               cls.machine_list[machineId].machine_type)
+                """processing_time = DB_query.get_processing_time(dataSetId, ProcessingTime_db,oper.operId,
+                                                               cls.machine_list[machineId].machine_type)"""
+                processing_time = DataInventory.sim_data.get_processing_time_by_oper_and_machine(oper.operId,
+                                                                                                 cls.machine_list[machineId].machine_type)
                 if oper.operId not in cls.Processing_time_table:
                     cls.Processing_time_table[oper.operId] = {}
                 cls.Processing_time_table[oper.operId][machineId] = processing_time
 
     @classmethod
     def get_setup_time_table(cls, dataSetId, machine):
-        machine_setup_time_dict = {}
-        for from_job_id in cls.job_info:
-            from_to_setup_time_dict = DB_query.get_from_to_setup_time_dict(dataSetId,Setup_db,machine, from_job_id)
-            machine_setup_time_dict[from_job_id] = from_to_setup_time_dict
-        return machine_setup_time_dict
+        from_to_setup_time_dict = DataInventory.sim_data.get_setup_time_list_by_machine(machine.machineId)
+        return from_to_setup_time_dict
 
     @classmethod
     def get_q_time_table_of_opers(cls, oper_list): # 해당 job의

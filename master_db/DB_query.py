@@ -55,3 +55,8 @@ class DB_query:
         for row in rows:
             from_to_setup_time_dict[row.toJobType] = row.setupTime
         return from_to_setup_time_dict
+
+    @classmethod
+    def set_event_history(cls, data_to_insert):
+        cls.session.add(data_to_insert)
+        cls.session.commit()

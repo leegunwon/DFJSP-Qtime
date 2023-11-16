@@ -144,9 +144,9 @@ class GA_FJSP:
     @classmethod
     def replacement_operator(cls, offsprings):
         result_population = []
-        for i in range(10):
+        for i in range(cls.NUM_OFFSPRING):
             cls.population.pop()
-        for i in range(10):
+        for i in range(cls.NUM_OFFSPRING):
             cls.population.append(offsprings[i])
 
     @classmethod
@@ -185,10 +185,10 @@ class GA_FJSP:
             cls.print_avg_fittness()
             cls.generation += 1
 
-            if cls.generation == 100:
+            if cls.generation == 10000:
                 break
 
         print(cls.population[0])
-        makespan = Simulator.get_fittness_with_meta_heuristic(cls.population[0][0], cls.population[0][1], 1)
+
 
 
