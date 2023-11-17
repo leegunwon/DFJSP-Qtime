@@ -1,6 +1,7 @@
 
 import datetime
 import logging
+
 #todo 파라미터 정리 필요, 강화학습 -> 하이퍼 파라미터
 class Parameters:
     """
@@ -78,10 +79,11 @@ class Parameters:
     log_on = True #log 껐다 키기
     param_down_on = True #파라미터 다운 끄기
     meta_ver = True
+    log_history = False
 
     db_data = ""
     reward_type = ""
-
+    state_type = ""
     simulation_time = ""
     log_path = ""
 
@@ -117,18 +119,33 @@ class Parameters:
         cls.reward_type = reward_type
 
     @classmethod
+    def set_check_history_db(cls, check):
+        cls.log_hitory = check
+
+    @classmethod
     def set_log_path(cls):
-        log_path = cls.save_log_directory + cls.simulation_time + "performance.log"
-        logging.basicConfig(
-            filename=log_path,
-            level=logging.INFO,  # 로그 레벨을 INFO로 설정
-            format='%(asctime)s [%(levelname)s]: %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
+        if cls.log_on == True:
+            log_path = cls.save_log_directory + cls.simulation_time + "performance.log"
+            logging.basicConfig(
+                filename=log_path,
+                level=logging.INFO,  # 로그 레벨을 INFO로 설정
+                format='%(asctime)s [%(levelname)s]: %(message)s',
+                datefmt='%Y-%m-%d %H:%M:%S'
+            )
 
     @classmethod
     def set_dataSetId(cls, dataSetId):
         cls.db_data = dataSetId
+
+    @classmethod
+    def set_state_dimension(cls , Simulator):
+        if cls.state_type == "state_12":
+            cls.r_param['input_layer'] = 12
+        elif cls.state_type == "state_36":
+            cls.r_param['input_layer'] = Simulator.number_of_machine * 3 + 6
+    @classmethod
+    def set_state_type(cls, state):
+        cls.state_type = state
 
 
 

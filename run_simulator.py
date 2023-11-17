@@ -1,28 +1,26 @@
-import logging
-
-import time
-from collections import Counter
 import Parameters
 from learner.DQN import *
-from simlator.Simulator import *
-from Parameters import *
-from FJSP_GA import *
-import datetime
+from metaheuristic.FJSP_GA import *
+from metaheuristic.FJSP_2SGA import *
+
 class Run_Simulator:
     def __init__(self):
         print("simulator on")
-
+        Parameters.set_dataSetId("MK03")  # 사용할 데이터셋 설정
         Parameters.set_time_to_string() # 현재 시간 가져오는 코드 -> 로그 및 기록을 위함
+        Parameters.set_check_log(False)  # log 남기기 여부
+        Parameters.set_check_down_parameter(False)  # DQN 파라미터 다운 여부
+        Parameters.set_check_history_db(False)
+        Parameters.set_check_gantt_on(True)  # 간트차트 띄우기 여부
+        Parameters.set_meta_ver(False)
+        DataInventory.set_db_data()
+
         Parameters.set_log_path() # 저장 경로 설정하는 코드
         Parameters.set_reward_type("makespan") # reward 설정
-        Parameters.set_dataSetId("MK10") # 사용할 데이터셋 설정
+        Parameters.set_state_type("state_12")
         Simulator._init(Parameters.db_data) # 데이터셋 선택 후 데이터에 맞게 시뮬레이터 설정
 
-        Parameters.set_check_log(True) # log 남기기 여부
-        Parameters.set_check_down_parameter(False) # DQN 파라미터 다운 여부
-
-        Parameters.set_check_gantt_on(True) #간트차트 띄우기 여부
-        Parameters.set_meta_ver(True)
+        Parameters.set_state_dimension(Simulator)
         print("set complete")
     def main(self, mode, dsp_rule):
         logging.info(f"mode: {mode}")
@@ -43,7 +41,8 @@ class Run_Simulator:
         elif mode == "meta_heuristics":
             start_time = time.time()
             k = []
-            GA_FJSP.search()
+            #GA_FJSP.search()
+            FJSP_2SGA.search()
 
 
 

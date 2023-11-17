@@ -1,13 +1,5 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Jan 11 16:19:17 2023
-
-@author: parkh
-"""
-import pandas as pd
-from Object.Lot import *
-from Object.Resource import *
-
+from model.event_db import *
+from master_db.DB_query import *
 class Event(object):
     id_counter = 0
     @classmethod
@@ -34,6 +26,13 @@ class Event(object):
             #print("D")
         else:
             self.q_time_check = False
+
+    def send_db(self, datasetId, simulation_time):
+        data_to_insert = Event_db(self, datasetId, simulation_time)
+        DB_query.set_event_history(data_to_insert)
+
+
+
 
 
 

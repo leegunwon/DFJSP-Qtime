@@ -1,7 +1,8 @@
 import torch
 
 import collections
-from simlator.Simulator import *
+import random
+
 class ReplayBuffer():  # buffer class
     def __init__(self, buffer_limit):
         self.buffer = collections.deque(maxlen=buffer_limit)
