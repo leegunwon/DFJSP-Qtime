@@ -6,7 +6,7 @@ from metaheuristic.FJSP_2SGA import *
 class Run_Simulator:
     def __init__(self):
         print("simulator on")
-        Parameters.set_dataSetId("DFJSP_10_60_0.4")  # 사용할 데이터셋 설정
+        Parameters.set_dataSetId("MK03")  # 사용할 데이터셋 설정
         Parameters.set_time_to_string() # 현재 시간 가져오는 코드 -> 로그 및 기록을 위함
         Parameters.set_check_log(False)  # log 남기기 여부
         Parameters.set_check_down_parameter(False)  # DQN 파라미터 다운 여부
@@ -17,6 +17,7 @@ class Run_Simulator:
 
         Parameters.set_log_path() # 저장 경로 설정하는 코드
         Parameters.set_reward_type("makespan") # reward 설정
+        Parameters.set_state_type("state_12")
         Simulator._init(Parameters.db_data) # 데이터셋 선택 후 데이터에 맞게 시뮬레이터 설정
 
         Parameters.set_state_dimension(Simulator)
@@ -48,7 +49,7 @@ class Run_Simulator:
 
 if True:
     simulator = Run_Simulator()
-    simulator.main("DSP_run","SPT") # dsp_rule = 개별 확인할 때만 사용하면 됨
+    simulator.main("DQN","SPT") # dsp_rule = 개별 확인할 때만 사용하면 됨
 
 # gantt chart 쑬 것인지
 # 학습 방법, kpi목표

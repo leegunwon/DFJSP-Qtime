@@ -1,6 +1,7 @@
 import torch
 
 import collections
+import random
 
 class ReplayBuffer():  # buffer class
     def __init__(self, buffer_limit):

@@ -83,7 +83,7 @@ class Parameters:
 
     db_data = ""
     reward_type = ""
-
+    state_type = ""
     simulation_time = ""
     log_path = ""
 
@@ -139,7 +139,13 @@ class Parameters:
 
     @classmethod
     def set_state_dimension(cls , Simulator):
-        cls.r_param['input_layer'] = Simulator.number_of_machine * 3 + 6
+        if cls.state_type == "state_12":
+            cls.r_param['input_layer'] = 12
+        elif cls.state_type == "state_36":
+            cls.r_param['input_layer'] = Simulator.number_of_machine * 3 + 6
+    @classmethod
+    def set_state_type(cls, state):
+        cls.state_type = state
 
 
 

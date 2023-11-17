@@ -1,9 +1,16 @@
 
 from Object.Lot import *
-
+from Parameters import *
 
 class StateManager:
     state_time = 0
+    @classmethod
+    def get_state(cls, j_list, r_list, cur_runtime, number_of_job):
+        if Parameters.state_type == "state_12":
+            s = cls.set_state_12(j_list, r_list, cur_runtime)
+        elif Parameters.state_type == "state_36":
+            s = cls.set_state_36(j_list, r_list, cur_runtime, number_of_job)
+        return s
     @classmethod
     def set_state_12(cls, j_list, r_list, cuur_time):
         cls.state_time = cuur_time
@@ -41,9 +48,9 @@ class StateManager:
             if j_list[job].status == "WAIT":
                 number_of_jobs_wait += 1
                 total_remain_operation += j_list[job].remain_operation
-                total_tardiness += j_list[job].cal_tardiness(self.time)
-                total_q_time_over += j_list[job].cal_q_time(self.time)
-                total_flow_time += j_list[job].cal_flowtime(self.time)
+                total_tardiness += j_list[job].cal_tardiness(cuur_time)
+                total_q_time_over += j_list[job].cal_q_time(cuur_time)
+                total_flow_time += j_list[job].cal_flowtime(cuur_time)
             elif j_list[job].status == "PROCESSING":
                 number_of_jobs_load += 1
             elif j_list[job].status == "DONE":
@@ -52,7 +59,7 @@ class StateManager:
                 q_total = j_list[job].cal_q_time_total()
                 total_job_q_time_over_done += q_total
 
-        current_time = self.time
+        current_time = cuur_time
         total_reservation_time_diff = 0
         max_reservation_time = 0
         for machine in r_list:

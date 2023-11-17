@@ -106,7 +106,7 @@ class Simulator:
                 #이벤트도 비워져 있고, #job들도 다 done이면 종료
                 if len(cls.event_list) == 0 and all(cls.lot_list[job].status == "DONE" for job in cls.lot_list):
                     done = True
-                    s_prime = StateManager.set_state_36(cls.lot_list, cls.machine_list, cls.runtime, cls.number_of_job)
+                    s_prime = StateManager.get_state(cls.lot_list, cls.machine_list, cls.runtime, cls.number_of_job)
                     df = pd.Series(s_prime)
                     s_prime = df.to_numpy()
                     r = 0
@@ -118,7 +118,7 @@ class Simulator:
                 candidate_list, rule_name = cls.dispatcher.dispatching_rule_decision(candidate_list ,action, cls.runtime)
                 cls.get_event(candidate_list[0], machineId, rule_name)
 
-                s_prime = StateManager.set_state_36(cls.lot_list, cls.machine_list, cls.runtime, cls.number_of_job)
+                s_prime = StateManager.get_state(cls.lot_list, cls.machine_list, cls.runtime, cls.number_of_job)
                 r , cls.machine_list = cls.rewardManager.get_reward(Parameters.reward_type, machineId , cls.lot_list, cls.machine_list, cls.runtime)
                 break
         return s_prime, r , done
