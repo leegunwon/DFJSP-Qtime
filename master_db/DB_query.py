@@ -1,8 +1,7 @@
-from sqlalchemy import create_engine, Column, String, DateTime, Integer
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import declarative_base  # 모듈 변경
-from datetime import datetime  # datetime 모듈 임포트
-from Parameters import *
+from src.common.Parameters import *
 
 class DB_query:
     host = Parameters.db_setting["host"]
@@ -55,6 +54,16 @@ class DB_query:
         for row in rows:
             from_to_setup_time_dict[row.toJobType] = row.setupTime
         return from_to_setup_time_dict
+
+    @classmethod
+    def get_total_setup_type(cls, dataSetId, table):
+        distinct_job_types = (
+            session.query(table.jobType)
+            .filter(j1.dataSetId == dataSetId)
+            .distinct()
+            .all()
+        )
+        return distinct_job_types
 
     @classmethod
     def set_event_history(cls, data_to_insert):

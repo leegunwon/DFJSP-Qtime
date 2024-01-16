@@ -3,12 +3,13 @@ from master_db.DB_query import *
 import os
 import pickle
 
-from model.Job_db import *
-from model.Oper_db import *
-from model.ProcessingTime_db import *
-from model.Setup_db import *
-from model.Demand_db import *
-from model.machine_db import *
+from src.model.Job_db import *
+from src.model.Oper_db import *
+from src.model.ProcessingTime_db import *
+from src.model.Setup_db import *
+from src.model.Demand_db import *
+from src.model.machine_db import *
+from src.model.mac_status_db import *
 from master_db.SimDataInven import *
 
 class DataInventory:
@@ -17,10 +18,10 @@ class DataInventory:
     dict_data = {}      # dict데이터
     dataset_id = "MK01"
     db_dict = {"Machine_db": Machine_db, "Demand_db":Demand_db, "Job_db":Job_db,
-               "Oper_db":Oper_db,"ProcessingTime_db":ProcessingTime_db,"Setup_db":Setup_db}
+               "Oper_db":Oper_db,"ProcessingTime_db":ProcessingTime_db,"Setup_db":Setup_db, "MacStatus_db": Mac_Status_db}
     @classmethod
-    def set_db_data(cls):
-        cls.dataset_id = Parameters.db_data
+    def set_db_data(cls, data_id):
+        cls.dataset_id = data_id
         file_path = f'master_db/pickleDBData/{cls.dataset_id}_db_data.pkl'
         if os.path.exists(file_path):
 
@@ -35,7 +36,7 @@ class DataInventory:
                 cls.master_data[key] = data_df
             cls.set_sim_data()
             data_list = [cls.master_data, cls.sim_data]
-            
+
             with open(file_path, 'wb') as file:
                 pickle.dump(data_list, file)
 
@@ -106,3 +107,7 @@ class DataInventory:
     @classmethod
     def get_demand_db_data(cls):
         return cls.master_data["Demand_db"]
+
+    @classmethod
+    def get_mac_status_db_data(cls):
+        return cls.master_data['MacStatus_db'] if "MacStatus_db" in cls.master_data else []
